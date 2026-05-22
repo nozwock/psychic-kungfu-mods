@@ -1,0 +1,52 @@
+set dotenv-required := true
+
+# Define MOD_PATH in .env
+# No backslashes in path
+
+[default]
+build:
+    if [ -f *.csproj ]; then \
+        dotnet publish -c Release -p:SkipCopyMod=true *.csproj; \
+    fi
+
+[script]
+_copy-mod-to mods_dir:
+    {{ assert(trim(mods_dir) != '', 'Empty mods_dir') }}
+
+    dest="{{ mods_dir }}"
+    mkdir -p "$dest"
+
+    echo >&2 "Copying mod to \"$dest\""
+    cp -t "$dest" bin/Release/*/publish/*
+
+[arg("mods_dir", help="Default is MOD_PATH env var if empty")]
+[script]
+install mods_dir='': build
+    mods_dir='{{ mods_dir }}'
+    if [ '{{ trim(mods_dir) }}' = '' ]; then
+        {{ assert(trim(env('MOD_PATH', '')) != '', 'Missing or empty MOD_PATH env var') }}
+        mods_dir="$MOD_PATH"
+    fi
+
+    dest="$mods_dir"
+
+    just _copy-mod-to "$dest"
+
+[doc("Package mod in a zip archive.")]
+[script]
+pack output_dir: build
+    tempdir="$(mktemp -d)"
+    function cleanup() {
+        rm -rf "$tempdir"
+    }
+    trap cleanup EXIT
+
+    modname="{{ file_name(justfile_directory()) }}"
+    dest="$tempdir"
+
+    just _copy-mod-to "$dest"
+
+    zip="{{ output_dir }}/$modname.zip"
+    rm -f "$zip"
+
+    7z a "$zip" "$dest"/*

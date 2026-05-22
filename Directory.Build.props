@@ -1,0 +1,64 @@
+<Project>
+  <!-- Define GamePath property in Local.props -->
+  <Import Project="Local.props" Condition="Exists('Local.props')" />
+  <PropertyGroup Condition="'$(GamePath)' != ''">
+    <DllDir>$(GamePath)/JinGu_Data/Managed/</DllDir>
+
+    <!-- Melonloader -->
+    <PluginDir>$(GamePath)/Mods/</PluginDir>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <TargetFramework>net472</TargetFramework>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <LangVersion>14</LangVersion>
+    <Nullable>enable</Nullable>
+    <RestoreAdditionalProjectSources>
+      https://api.nuget.org/v3/index.json;
+      https://nuget.bepinex.dev/v3/index.json;
+      https://nuget.samboy.dev/v3/index.json
+    </RestoreAdditionalProjectSources>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="BepInEx.AssemblyPublicizer.MSBuild" Version="0.4.2"
+      PrivateAssets="all" />
+
+    <Reference Include="$(DllDir)/Assembly-CSharp.dll" Publicize="true" Private="false" />
+    <Reference Include="$(DllDir)/*.dll"
+      Exclude="$(DllDir)/Assembly-CSharp.dll;$(DllDir)/System*.dll;$(DllDir)/mscorlib.dll;$(DllDir)/netstandard.dll"
+      Private="false" />
+
+    <Reference Include="$(GamePath)/MelonLoader/net472/*.dll" Private="false" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(TargetFramework.TrimEnd(`0123456789`))' == 'net'">
+    <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.0.2"
+      PrivateAssets="all" />
+  </ItemGroup>
+
+  <Target Name="CleanupPublishDir" AfterTargets="Publish">
+    <ItemGroup Condition="'$(Configuration)' == 'Debug'">
+      <FilesToDelete Include="$(PublishDir)*.deps.json;" />
+    </ItemGroup>
+    <ItemGroup Condition="'$(Configuration)' == 'Release'">
+      <FilesToDelete Include="$(PublishDir)*.pdb;$(PublishDir)*.deps.json;" />
+    </ItemGroup>
+    <Delete Files="@(FilesToDelete)">
+      <Output TaskParameter="DeletedFiles" ItemName="FilesDeleted" />
+    </Delete>
+  </Target>
+
+  <Target Name="CopyMod" AfterTargets="Publish"
+    Condition="'$(PluginDir)' != '' AND '$(SkipCopyMod)' != 'true'">
+    <!-- .NET 9+ Message will only show up with -v:d or -tl:off in terminals -->
+    <Message Text="Copying mod to &quot;$(PluginDir)&quot;" Importance="High" />
+
+    <!-- https://github.com/dotnet/msbuild/issues/5881#issuecomment-1537643217 -->
+    <ItemGroup>
+      <FilesToCopy Include="$([MSBuild]::EnsureTrailingSlash('$(PublishDir)'))**\*.*" />
+    </ItemGroup>
+    <Copy SourceFiles="@(FilesToCopy)"
+      DestinationFolder="$([MSBuild]::EnsureTrailingSlash('$(PluginDir)/$(AssemblyName)'))%(RecursiveDir)" />
+  </Target>
+</Project>
