@@ -15,7 +15,14 @@ public class Plugin : MelonMod
         base.OnInitializeMelon();
 
         harmony = new("nozwock.tweaks");
-        harmony.PatchAll(MelonAssembly.Assembly);
+        try
+        {
+            harmony.PatchAll(MelonAssembly.Assembly);
+        }
+        catch (Exception e)
+        {
+            MelonLogger.Msg(e);
+        }
 
         // TODO: Main Menu Continue seems to not be using m_saveTime for getting the recent save file
         // TODO: Persist Load UI's last tab page opened (FileWindow)
