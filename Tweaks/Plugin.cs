@@ -57,5 +57,15 @@ public class Plugin : MelonMod
         {
             value = 999999; // Will get clamped to max value
         }
+
+        [HarmonyPrefix]
+        [HarmonyPatch(typeof(SaveData), nameof(SaveData.FullName), MethodType.Getter)]
+        private static bool SaveData_get_FileName_Prefix(SaveData __instance, ref string __result)
+        {
+            var self = __instance;
+            var separator = GameSetting.GetValue(SettingEnum.Language) == 2 ? " " : "";
+            __result = self.m_leaderFamily + separator + self.m_leaderName;
+            return false;
+        }
     }
 }
