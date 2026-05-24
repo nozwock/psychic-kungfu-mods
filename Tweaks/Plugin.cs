@@ -5,6 +5,7 @@ using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
 using System.Text.RegularExpressions;
+using System.Threading;
 using DBLoad;
 using HarmonyLib;
 using MelonLoader;
@@ -20,6 +21,7 @@ public class Plugin : MelonMod
 {
     private HarmonyLib.Harmony? harmony;
     private InputAction? quickloadAction;
+    private SynchronizationContext? defaultContext;
 
     public override void OnInitializeMelon()
     {
@@ -60,6 +62,41 @@ public class Plugin : MelonMod
             }
         };
         quickloadAction.Enable();
+
+        defaultContext = SynchronizationContext.Current;
+        new Thread(() =>
+        {
+            while (true)
+            {
+                var line = Console.ReadLine();
+                var splits = line.Split(' ');
+                if (splits.Length > 0)
+                {
+                    if (int.TryParse(splits[0], out var id))
+                    {
+                        var count = 1;
+                        if (splits.Length > 1 && int.TryParse(splits[1], out var n))
+                            count = n;
+
+                        if (Item.Get(id) != null)
+                        {
+                            MelonLogger.Msg($"Added Item: id={id}, count={count}");
+                            defaultContext?.Post(_ =>
+                            {
+                                SaveManager.Instance.SaveData.AddItems([id], [count]);
+                            }, null);
+                        }
+                        else
+                        {
+                            MelonLogger.Msg($"Invalid Item: id={id}");
+                        }
+                    }
+                }
+            }
+        })
+        {
+            IsBackground = true,
+        }.Start();
     }
 
     public override void OnDeinitializeMelon()
