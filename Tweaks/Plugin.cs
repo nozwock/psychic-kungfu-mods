@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
+using System.Runtime.CompilerServices;
 using System.Text.RegularExpressions;
 using System.Threading;
 using DBLoad;
@@ -97,6 +98,8 @@ public class Plugin : MelonMod
         {
             IsBackground = true,
         }.Start();
+
+        RemoveMartialArtMoralityCondition();
     }
 
     public override void OnDeinitializeMelon()
@@ -107,6 +110,32 @@ public class Plugin : MelonMod
         harmony = null;
 
         MelonLogger.Msg("Harmony patches unapplied!");
+    }
+
+    private static void RemoveMartialArtMoralityCondition()
+    {
+        foreach (var orig in WuXue.Dic.Values)
+        {
+            var conditionList = orig.m_condition.ToList();
+            var conditionValueList = orig.m_conditionValue.ToList();
+            var conditionModified = false;
+
+            for (var i = conditionValueList.Count - 1; i >= 0; i--)
+            {
+                if (conditionValueList[i][0] == (int)EffectId.善恶)
+                {
+                    conditionList.RemoveAt(i);
+                    conditionValueList.RemoveAt(i);
+                    conditionModified = true;
+                }
+            }
+
+            if (conditionModified)
+            {
+                Unsafe.AsRef(in orig.m_condition) = [.. conditionList];
+                Unsafe.AsRef(in orig.m_conditionValue) = [.. conditionValueList];
+            }
+        }
     }
 
     [HarmonyPatch]
