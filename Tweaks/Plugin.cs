@@ -9,6 +9,7 @@ using DBLoad;
 using HarmonyLib;
 using MelonLoader;
 using UnityEngine;
+using UnityEngine.InputSystem;
 using UnityEngine.UI;
 
 [assembly: MelonInfo(typeof(Tweaks.Plugin), "Tweaks", "0.0.1", "nozwock")]
@@ -18,6 +19,7 @@ namespace Tweaks;
 public class Plugin : MelonMod
 {
     private HarmonyLib.Harmony? harmony;
+    private InputAction? quickloadAction;
 
     public override void OnInitializeMelon()
     {
@@ -45,6 +47,19 @@ public class Plugin : MelonMod
         {
             MelonLogger.Msg($"{m.DeclaringType.FullName}.{m.Name}");
         }
+
+        quickloadAction = new(name: "QuickLoad", type: InputActionType.Button, binding: "<Keyboard>/f9");
+        quickloadAction.performed += ctx =>
+        {
+            // TODO: Add rebinding support
+            var save = MonoSingleton<SaveManager>.Instance.GetSaves(SaveEnum.快速).FirstOrDefault();
+            if (save != null)
+            {
+                MonoSingleton<SaveManager>.Instance.Load(save);
+                UIUtlils.RollUpTips($"Loaded {save.m_name}");
+            }
+        };
+        quickloadAction.Enable();
     }
 
     public override void OnDeinitializeMelon()
