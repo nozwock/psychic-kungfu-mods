@@ -60,21 +60,21 @@ public class Plugin : MelonMod
     {
         [HarmonyPrefix]
         [HarmonyPatch(typeof(SaveData), nameof(SaveData.JingLiPer), MethodType.Setter)]
-        private static void SaveData_set_JingLiPer_Prefix(ref float value)
+        private static void SaveData_set_JingLiPer_InfiniteEnergy_Prefix(ref float value)
         {
             value = 1f;
         }
 
         [HarmonyPrefix]
         [HarmonyPatch(typeof(SaveData), nameof(SaveData.TiLi), MethodType.Setter)]
-        private static void SaveData_set_TiLi_Prefix(ref int value)
+        private static void SaveData_set_TiLi_InfiniteStamina_Prefix(ref int value)
         {
             value = 999999; // Will get clamped to max value
         }
 
         [HarmonyPrefix]
         [HarmonyPatch(typeof(SaveData), nameof(SaveData.FullName), MethodType.Getter)]
-        private static bool SaveData_get_FileName_Prefix(SaveData __instance, ref string __result)
+        private static bool SaveData_get_FileName_FixPlayerName_Prefix(SaveData __instance, ref string __result)
         {
             var self = __instance;
             var separator = GameSetting.GetValue(SettingEnum.Language) == 2 ? " " : "";
@@ -83,7 +83,7 @@ public class Plugin : MelonMod
         }
 
         [HarmonyPatch(typeof(SaveManager), nameof(SaveManager.Load), [typeof(string), typeof(string)])]
-        private class Patch_PrioritizeSaveFilename
+        private class SaveManager_Load_PrioritizeSaveFilename_Patch
         {
             private static readonly Regex managedSaveRegex = new("^(?:Fixed(\\d+)|Quick(\\d+)|AutoSave\\d+)$");
 
@@ -113,7 +113,7 @@ public class Plugin : MelonMod
                 ).MakeGenericMethod(typeof(SaveData));
 
                 var updateSaveNameMethod = AccessTools.Method(
-                    typeof(Patch_PrioritizeSaveFilename),
+                    typeof(SaveManager_Load_PrioritizeSaveFilename_Patch),
                     nameof(UpdateSaveName)
                 );
 
@@ -133,7 +133,7 @@ public class Plugin : MelonMod
 
         [HarmonyPostfix]
         [HarmonyPatch(typeof(ItemTips), nameof(ItemTips.OnOpen))]
-        private static void ItemTips_OnOpen_Postfix(ItemTips __instance, object[] variables)
+        private static void ItemTips_OnOpen_ShowItemId_Postfix(ItemTips __instance, object[] variables)
         {
             var self = __instance;
             var descText = self.m_goTable.GetNode<Text>("Desc_Text");
