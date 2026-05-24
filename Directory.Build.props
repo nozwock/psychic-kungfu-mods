@@ -3,6 +3,7 @@
   <Import Project="Local.props" Condition="Exists('Local.props')" />
   <PropertyGroup Condition="'$(GamePath)' != ''">
     <DllDir>$(GamePath)/JinGu_Data/Managed/</DllDir>
+    <LoaderDllDir>$(GamePath)/MelonLoader/net472/</LoaderDllDir>
 
     <!-- Melonloader -->
     <PluginDir>$(GamePath)/Mods/</PluginDir>
@@ -29,7 +30,9 @@
       Exclude="$(DllDir)/Assembly-CSharp.dll;$(DllDir)/System*.dll;$(DllDir)/mscorlib.dll;$(DllDir)/netstandard.dll"
       Private="false" />
 
-    <Reference Include="$(GamePath)/MelonLoader/net472/*.dll" Private="false" />
+    <!-- MonoMod is excluded due to Unsafe API conflicts -->
+    <Reference Include="$(LoaderDllDir)/*.dll" Exclude="$(LoaderDllDir)/MonoMod.Backports.dll"
+      Private="false" />
   </ItemGroup>
 
   <ItemGroup Condition="'$(TargetFramework.TrimEnd(`0123456789`))' == 'net'">
