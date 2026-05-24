@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Reflection.Emit;
 using System.Text.RegularExpressions;
 using HarmonyLib;
@@ -149,6 +150,48 @@ Owned: {SaveManager.Instance.SaveData.m_itemDic.GetValueSafe(id)}
                 var rect = self.m_goTable.GetNode<RectTransform>("Tips_RectTransform");
                 rect.sizeDelta = new(rect.sizeDelta.x, descText.preferredHeight + 112f);
                 UIUtlils.SetPos(rect);
+            }
+        }
+
+        [HarmonyPatch]
+        private class FunctionWindow_SetFriend_Select_ShowTeamId_Patch
+        {
+            private static FieldInfo? goTableField;
+
+            private static MethodBase TargetMethod()
+            {
+                var selectNpcMethodName = $"<{nameof(FunctionWindow.SetFriend)}>g__Select";
+                return typeof(FunctionWindow)
+                    .GetNestedTypes(BindingFlags.NonPublic)
+                    .SelectMany(it => it.GetMethods(BindingFlags.Instance | BindingFlags.NonPublic))
+                    .First(m =>
+                    {
+                        if (!m.Name.Contains(selectNpcMethodName))
+                            return false;
+                        var p = m.GetParameters();
+                        return p.Length == 1 && p[0].ParameterType == typeof(int);
+                    });
+            }
+
+            private static void Postfix(object __instance, int npcId)
+            {
+                var self = __instance;
+
+                if (goTableField == null)
+                    goTableField = AccessTools.Field(self.GetType(), "goTable");
+                var goTable = (GoTable)goTableField.GetValue(self);
+
+                // Have to gate it since it's called more than once for some reason
+                var descText = goTable.GetNode<Text>("Desc_Text");
+                if (!descText.text.StartsWith("[ID: "))
+                {
+                    descText.text = $"[ID: {npcId}] {descText.text}";
+
+                    var rect = goTable.GetNode<RectTransform>("Desc_RectTransform");
+                    rect.sizeDelta = new(rect.sizeDelta.x, Mathf.Max(200f, descText.preferredHeight + 67f));
+                    LayoutRebuilder.ForceRebuildLayoutImmediate(
+                        goTable.GetNode<RectTransform>("Content_RectTransform"));
+                }
             }
         }
     }
