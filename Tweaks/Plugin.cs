@@ -64,40 +64,7 @@ public class Plugin : MelonMod
         };
         quickloadAction.Enable();
 
-        defaultContext = SynchronizationContext.Current;
-        new Thread(() =>
-        {
-            while (true)
-            {
-                var line = Console.ReadLine();
-                var splits = line.Split(' ');
-                if (splits.Length > 0)
-                {
-                    if (int.TryParse(splits[0], out var id))
-                    {
-                        var count = 1;
-                        if (splits.Length > 1 && int.TryParse(splits[1], out var n))
-                            count = n;
-
-                        if (Item.Get(id) != null)
-                        {
-                            MelonLogger.Msg($"Added Item: id={id}, count={count}");
-                            defaultContext?.Post(_ =>
-                            {
-                                SaveManager.Instance.SaveData.AddItems([id], [count]);
-                            }, null);
-                        }
-                        else
-                        {
-                            MelonLogger.Msg($"Invalid Item: id={id}");
-                        }
-                    }
-                }
-            }
-        })
-        {
-            IsBackground = true,
-        }.Start();
+        SpawnConsoleCommandReader();
 
         RemoveMartialArtMoralityCondition();
     }
@@ -136,6 +103,44 @@ public class Plugin : MelonMod
                 Unsafe.AsRef(in orig.m_conditionValue) = [.. conditionValueList];
             }
         }
+    }
+
+    private void SpawnConsoleCommandReader()
+    {
+        defaultContext = SynchronizationContext.Current;
+        new Thread(() =>
+        {
+            while (true)
+            {
+                var line = Console.ReadLine();
+                var splits = line.Split(' ');
+                if (splits.Length > 0)
+                {
+                    if (int.TryParse(splits[0], out var id))
+                    {
+                        var count = 1;
+                        if (splits.Length > 1 && int.TryParse(splits[1], out var n))
+                            count = n;
+
+                        if (Item.Get(id) != null)
+                        {
+                            MelonLogger.Msg($"Added Item: id={id}, count={count}");
+                            defaultContext?.Post(_ =>
+                            {
+                                SaveManager.Instance.SaveData.AddItems([id], [count]);
+                            }, null);
+                        }
+                        else
+                        {
+                            MelonLogger.Msg($"Invalid Item: id={id}");
+                        }
+                    }
+                }
+            }
+        })
+        {
+            IsBackground = true,
+        }.Start();
     }
 
     [HarmonyPatch]
