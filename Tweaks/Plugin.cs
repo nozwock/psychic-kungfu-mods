@@ -5,6 +5,7 @@ using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
 using System.Text.RegularExpressions;
+using DBLoad;
 using HarmonyLib;
 using MelonLoader;
 using UnityEngine;
@@ -59,6 +60,16 @@ public class Plugin : MelonMod
     [HarmonyPatch]
     private class Patches
     {
+        [HarmonyPostfix]
+        [HarmonyPatch(typeof(SaveData), nameof(SaveData.GetEffectValue))]
+        private static void NpcInfo_set_Favo_GiftBoost_Postfix(ref float __result, EffectId id)
+        {
+            if (id == EffectId.送礼好感度)
+            {
+                __result *= 5;
+            }
+        }
+
         [HarmonyPrefix]
         [HarmonyPatch(typeof(SaveData), nameof(SaveData.JingLiPer), MethodType.Setter)]
         private static void SaveData_set_JingLiPer_InfiniteEnergy_Prefix(ref float value)
