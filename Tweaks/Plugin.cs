@@ -55,10 +55,10 @@ public class Plugin : MelonMod
         quickloadAction.performed += ctx =>
         {
             // TODO: Add rebinding support
-            var save = MonoSingleton<SaveManager>.Instance.GetSaves(SaveEnum.快速).FirstOrDefault();
+            var save = SaveManager.Instance.GetSaves(SaveEnum.快速).FirstOrDefault();
             if (save != null)
             {
-                MonoSingleton<SaveManager>.Instance.Load(save);
+                SaveManager.Instance.Load(save);
                 UIUtlils.RollUpTips($"Loaded {save.m_name}");
             }
         };
@@ -196,7 +196,7 @@ public class Plugin : MelonMod
 
                     File.WriteAllBytes(
                         saveData.m_path,
-                        MonoSingleton<SaveManager>.Instance.Encrypt(JsonUtility.ToJson(saveData)));
+                        SaveManager.Instance.Encrypt(JsonUtility.ToJson(saveData)));
                 }
 
                 return saveData;
