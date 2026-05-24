@@ -7,6 +7,7 @@ using System.Text.RegularExpressions;
 using HarmonyLib;
 using MelonLoader;
 using UnityEngine;
+using UnityEngine.UI;
 
 [assembly: MelonInfo(typeof(Tweaks.Plugin), "Tweaks", "0.0.1", "nozwock")]
 
@@ -127,6 +128,27 @@ public class Plugin : MelonMod
                         yield return new CodeInstruction(OpCodes.Call, updateSaveNameMethod);
                     }
                 }
+            }
+        }
+
+        [HarmonyPostfix]
+        [HarmonyPatch(typeof(ItemTips), nameof(ItemTips.OnOpen))]
+        private static void ItemTips_OnOpen_Postfix(ItemTips __instance, object[] variables)
+        {
+            var self = __instance;
+            var descText = self.m_goTable.GetNode<Text>("Desc_Text");
+            if (!descText.text.StartsWith("ID: "))
+            {
+                var id = (int)variables[0];
+                descText.text = $@"ID: {id}
+Owned: {SaveManager.Instance.SaveData.m_itemDic.GetValueSafe(id)}
+{descText.text}";
+
+                // XXX Could inject our code before the first get_sizeDelta call instead of hardcoding the size update
+                // logic here
+                var rect = self.m_goTable.GetNode<RectTransform>("Tips_RectTransform");
+                rect.sizeDelta = new(rect.sizeDelta.x, descText.preferredHeight + 112f);
+                UIUtlils.SetPos(rect);
             }
         }
     }
