@@ -1,3 +1,4 @@
+using System.Runtime.CompilerServices;
 using HarmonyLib;
 using UnityEngine;
 
@@ -16,9 +17,17 @@ namespace DifficultyMultiplier.Patches;
     ])]
 internal class Role_ctor_Patch
 {
+    private static readonly ConditionalWeakTable<Role, object?> seen = new();
+
     private static void Postfix(Role __instance, bool ai)
     {
+        // For some reason .ctor is being called twice for each newobj `new T()` call... I don't know why. Same thing
+        // happens with a MonoMod Hook patch, so it can't be a Harmony issue.
         var self = __instance;
+        if (seen.TryGetValue(self, out _))
+            return;
+        seen.Add(self, null);
+
         if (ai)
         {
             var cfg = Config.Instance;
