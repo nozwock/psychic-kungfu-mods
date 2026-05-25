@@ -116,7 +116,26 @@ public class Plugin : MelonMod
                 var splits = line.Split(' ');
                 if (splits.Length > 0)
                 {
-                    if (int.TryParse(splits[0], out var id))
+                    var cmd = splits[0].ToLower();
+                    if (cmd == "maxskill")
+                    {
+                        MelonLogger.Msg("Maxing out All Martial Skills");
+                        defaultContext?.Post(_ =>
+                        {
+                            foreach (var kvp in WuXue.Dic)
+                            {
+                                var id = kvp.Key;
+                                var data = kvp.Value;
+                                var maxExp = data.m_lvMax * data.m_exp;
+                                if (SaveManager.Instance.SaveData.m_wuXueExpDic.TryGetValue(id, out var exp)
+                                    && exp < maxExp)
+                                {
+                                    SaveManager.Instance.SaveData.AddWuXueExp(id, maxExp, true);
+                                }
+                            }
+                        }, null);
+                    }
+                    else if (int.TryParse(splits[0], out var id))
                     {
                         var count = 1;
                         if (splits.Length > 1 && int.TryParse(splits[1], out var n))
