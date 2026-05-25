@@ -12,6 +12,7 @@ class Config
     private MelonPreferences_Category Category { get; }
 
     public MelonPreferences_Entry<float> HpMultiplier { get; }
+    public MelonPreferences_Entry<float> MpMultiplier { get; }
     public MelonPreferences_Entry<float> AtkMultiplier { get; }
     public MelonPreferences_Entry<float> DefMultiplier { get; }
     public MelonPreferences_Entry<float> SpeedMultiplier { get; }
@@ -20,10 +21,8 @@ class Config
     {
         Category = MelonPreferences.CreateCategory("DifficultyMultiplier");
 
-        HpMultiplier = Category.CreateEntry(
-            "Hp",
-            1.0f,
-            description: "Difficulty HP stat is used for MP as well by the game.");
+        HpMultiplier = Category.CreateEntry("Hp", 1.0f);
+        MpMultiplier = Category.CreateEntry("Mp", 1.0f);
         AtkMultiplier = Category.CreateEntry("Atk", 1.0f);
         DefMultiplier = Category.CreateEntry("Def", 1.0f);
         SpeedMultiplier = Category.CreateEntry("Speed", 1.0f);
