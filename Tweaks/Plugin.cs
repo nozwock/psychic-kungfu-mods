@@ -135,6 +135,24 @@ public class Plugin : MelonMod
                             }
                         }, null);
                     }
+                    else if (cmd == "lover")
+                    {
+                        if (!(splits.Length > 1 && int.TryParse(splits[1], out var id)))
+                            return;
+
+                        defaultContext?.Post(_ =>
+                        {
+                            if (SaveManager.Instance.SaveData.NpcDic.TryGetValue(id, out var npc))
+                            {
+                                MelonLogger.Msg($"Assigning NPC \"{npc.Name}\" ({id}) to Lover (Crimson Veil) camp");
+                                npc.m_camp = NpcCamp.情缘;
+                            }
+                            else
+                            {
+                                MelonLogger.Msg($"NPC {id} not found");
+                            }
+                        }, null);
+                    }
                     else if (int.TryParse(splits[0], out var id))
                     {
                         var count = 1;
