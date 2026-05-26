@@ -13,6 +13,11 @@
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <LangVersion>14</LangVersion>
     <Nullable>enable</Nullable>
+
+    <!-- Avoids embedding full paths in built DLLs -->
+    <Deterministic>true</Deterministic>
+    <PathMap>$(MSBuildProjectDirectory)=.</PathMap>
+
     <RestoreAdditionalProjectSources>
       https://api.nuget.org/v3/index.json;
       https://nuget.bepinex.dev/v3/index.json;
