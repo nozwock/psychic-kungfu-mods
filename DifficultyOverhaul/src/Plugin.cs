@@ -2,13 +2,13 @@ using System;
 using System.Linq;
 using MelonLoader;
 
-[assembly: MelonInfo(typeof(DifficultyMultiplier.Plugin), "Difficulty Multiplier", "0.0.1", "nozwock")]
+[assembly: MelonInfo(typeof(DifficultyOverhaul.Plugin), "Difficulty Overhaul", "0.0.1", "nozwock")]
 
-namespace DifficultyMultiplier;
+namespace DifficultyOverhaul;
 
 public class Plugin : MelonMod
 {
-    public static readonly string Id = "nozwock.DifficultyMultiplier";
+    public static readonly string Id = "nozwock.DifficultyOverhaul";
 
     private HarmonyLib.Harmony? harmony;
 

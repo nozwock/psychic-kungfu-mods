@@ -2,7 +2,7 @@ using System.Runtime.CompilerServices;
 using HarmonyLib;
 using UnityEngine;
 
-namespace DifficultyMultiplier.Patches;
+namespace DifficultyOverhaul.Patches;
 
 [HarmonyPatch(
     typeof(Role),

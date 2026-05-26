@@ -1,7 +1,7 @@
 using System;
 using MelonLoader;
 
-namespace DifficultyMultiplier;
+namespace DifficultyOverhaul;
 
 class Config
 {
