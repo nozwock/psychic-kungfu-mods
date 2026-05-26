@@ -1,41 +1,44 @@
 using System;
 using System.Linq;
-using MelonLoader;
-
-[assembly: MelonInfo(typeof(DifficultyOverhaul.Plugin), "Difficulty Overhaul", "0.0.1", "nozwock")]
+using System.Reflection;
+using BepInEx;
 
 namespace DifficultyOverhaul;
 
-public class Plugin : MelonMod
+[BepInAutoPlugin(id: "nozwock.DifficultyOverhaul")]
+public partial class Plugin : BaseUnityPlugin
 {
-    public static readonly string Id = "nozwock.DifficultyOverhaul";
+    internal static Plugin Instance { get; private set; } = null!;
 
-    private HarmonyLib.Harmony? harmony;
+    private HarmonyLib.Harmony? _harmony;
 
-    public override void OnInitializeMelon()
+    private void Awake()
     {
-        _ = Config.Instance;
+        Instance = this;
 
-        harmony = new(Id);
+        _ = ModConfig.Instance;
+
+        _harmony = new(Id);
         try
         {
-            harmony.PatchAll(MelonAssembly.Assembly);
+            _harmony.PatchAll(Assembly.GetExecutingAssembly());
         }
-        catch (Exception e)
+        catch (Exception ex)
         {
-            MelonLogger.Msg(e);
+            Logger.LogError(ex);
         }
 
-        MelonLogger.Msg($"Harmony patches applied: {harmony.GetPatchedMethods().Count()}");
-        foreach (var m in harmony.GetPatchedMethods())
+        Logger.LogInfo($"Harmony patches applied: {_harmony.GetPatchedMethods().Count()}");
+        foreach (var m in _harmony.GetPatchedMethods())
         {
-            MelonLogger.Msg($"Patched {m.DeclaringType.FullName}.{m.Name}");
+            Logger.LogInfo($"Patched {m.DeclaringType.FullName}.{m.Name}");
         }
     }
 
-    public override void OnDeinitializeMelon()
+    private void OnDestroy()
+
     {
-        harmony?.UnpatchSelf();
-        harmony = null;
+        _harmony?.UnpatchSelf();
+        _harmony = null;
     }
 }

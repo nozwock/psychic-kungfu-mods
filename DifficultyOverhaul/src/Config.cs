@@ -1,9 +1,8 @@
-using System;
-using MelonLoader;
+using BepInEx.Configuration;
 
 namespace DifficultyOverhaul;
 
-class Config
+class ModConfig
 {
     public enum StatMultiplierConstraint
     {
@@ -11,43 +10,33 @@ class Config
         AllAi,
     }
 
-    private static readonly string _filename = $"UserData/{Plugin.Id}.cfg";
+    private static ModConfig? _instance;
+    public static ModConfig Instance => _instance ??= new(Plugin.Instance.Config);
 
-    private static readonly Lazy<Config> _instance = new(() => new Config());
+    public ConfigEntry<StatMultiplierConstraint> StatMultiplierScope { get; }
 
-    public static Config Instance => _instance.Value;
+    public ConfigEntry<float> HpMultiplier { get; }
+    public ConfigEntry<float> MpMultiplier { get; }
+    public ConfigEntry<float> AttackMultiplier { get; }
+    public ConfigEntry<float> PierceMultiplier { get; }
+    public ConfigEntry<float> DefenseMultiplier { get; }
+    public ConfigEntry<float> SpeedMultiplier { get; }
 
-    private MelonPreferences_Category CategoryGeneral { get; }
-    public MelonPreferences_Entry<StatMultiplierConstraint> StatMultiplierScope { get; }
+    private const string _sectionGeneral = "General";
+    private const string _sectionStatMultipliers = "StatMultipliers";
 
-    private MelonPreferences_Category CategoryStatMultipliers { get; }
-    public MelonPreferences_Entry<float> HpMultiplier { get; }
-    public MelonPreferences_Entry<float> MpMultiplier { get; }
-    public MelonPreferences_Entry<float> AttackMultiplier { get; }
-    public MelonPreferences_Entry<float> PierceMultiplier { get; }
-    public MelonPreferences_Entry<float> DefenseMultiplier { get; }
-    public MelonPreferences_Entry<float> SpeedMultiplier { get; }
-
-    private Config()
+    private ModConfig(ConfigFile config)
     {
-        CategoryGeneral = MelonPreferences.CreateCategory("General");
-        StatMultiplierScope = CategoryGeneral.CreateEntry(
+        StatMultiplierScope = config.Bind(
+            _sectionGeneral,
             "Scope",
-            StatMultiplierConstraint.OnlyEnemyAi,
-            description: $"Valid values: {string.Join(", ", Enum.GetNames(typeof(StatMultiplierConstraint)))}");
+            StatMultiplierConstraint.OnlyEnemyAi);
 
-        CategoryStatMultipliers = MelonPreferences.CreateCategory("StatMultipliers");
-        HpMultiplier = CategoryStatMultipliers.CreateEntry("Hp", 1.0f);
-        MpMultiplier = CategoryStatMultipliers.CreateEntry("Mp", 1.0f);
-        AttackMultiplier = CategoryStatMultipliers.CreateEntry("Attack", 1.0f);
-        PierceMultiplier = CategoryStatMultipliers.CreateEntry("Pierce", 1.0f);
-        DefenseMultiplier = CategoryStatMultipliers.CreateEntry("Defense", 1.0f);
-        SpeedMultiplier = CategoryStatMultipliers.CreateEntry("Speed", 1.0f);
-
-        CategoryGeneral.SetFilePath(_filename, autoload: true, printmsg: false);
-        CategoryStatMultipliers.SetFilePath(_filename, autoload: true, printmsg: false);
-
-        CategoryGeneral.SaveToFile(printmsg: false);
-        CategoryStatMultipliers.SaveToFile(printmsg: false);
+        HpMultiplier = config.Bind(_sectionStatMultipliers, "Hp", 1.0f);
+        MpMultiplier = config.Bind(_sectionStatMultipliers, "Mp", 1.0f);
+        AttackMultiplier = config.Bind(_sectionStatMultipliers, "Attack", 1.0f);
+        PierceMultiplier = config.Bind(_sectionStatMultipliers, "Pierce", 1.0f);
+        DefenseMultiplier = config.Bind(_sectionStatMultipliers, "Defense", 1.0f);
+        SpeedMultiplier = config.Bind(_sectionStatMultipliers, "Speed", 1.0f);
     }
 }

@@ -1,2 +1,11 @@
 <Project Sdk="Microsoft.NET.Sdk">
+    <PropertyGroup>
+        <AssemblyName>nozwock.Tweaks</AssemblyName>
+        <AssemblyTitle>Nozwock's Tweaks</AssemblyTitle>
+        <Version>0.0.1</Version>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="System.Runtime.CompilerServices.Unsafe" Version="6.1.2" />
+    </ItemGroup>
 </Project>

@@ -3,10 +3,9 @@
   <Import Project="Local.props" Condition="Exists('Local.props')" />
   <PropertyGroup Condition="'$(GamePath)' != ''">
     <DllDir>$(GamePath)/JinGu_Data/Managed/</DllDir>
-    <LoaderDllDir>$(GamePath)/MelonLoader/net472/</LoaderDllDir>
+    <LibDir>$(GamePath)/BepInEx/gamelibs/</LibDir>
 
-    <!-- Melonloader -->
-    <PluginDir>$(GamePath)/Mods/</PluginDir>
+    <PluginDir>$(GamePath)/BepInEx/plugins/</PluginDir>
   </PropertyGroup>
 
   <PropertyGroup>
@@ -22,16 +21,20 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="BepInEx.Analyzers" Version="1.*" PrivateAssets="all" />
+    <PackageReference Include="BepInEx.Core" Version="5.*" PrivateAssets="all" />
+    <!-- AutoPlugin Version 2.1 Requires SDK 10+ -->
+    <PackageReference Include="Hamunii.BepInEx.AutoPlugin" Version="2.1" PrivateAssets="all" />
+
     <PackageReference Include="BepInEx.AssemblyPublicizer.MSBuild" Version="0.4.2"
       PrivateAssets="all" />
 
     <Reference Include="$(DllDir)/Assembly-CSharp.dll" Publicize="true" Private="false" />
     <Reference Include="$(DllDir)/*.dll"
-      Exclude="$(DllDir)/Assembly-CSharp.dll;$(DllDir)/System*.dll;$(DllDir)/mscorlib.dll;$(DllDir)/netstandard.dll"
+      Exclude="$(DllDir)/Assembly-CSharp*.dll;$(DllDir)/System*.dll;$(DllDir)/mscorlib.dll;$(DllDir)/netstandard.dll"
       Private="false" />
-
-    <!-- MonoMod is excluded due to Unsafe API conflicts -->
-    <Reference Include="$(LoaderDllDir)/*.dll" Exclude="$(LoaderDllDir)/MonoMod.Backports.dll"
+    <Reference Include="$(LibDir)/*.dll"
+      Exclude="$(LibDir)/System*.dll;$(LibDir)/mscorlib.dll;$(LibDir)/netstandard.dll"
       Private="false" />
   </ItemGroup>
 

@@ -7,35 +7,33 @@ using System.Reflection.Emit;
 using System.Runtime.CompilerServices;
 using System.Text.RegularExpressions;
 using System.Threading;
+using BepInEx;
 using DBLoad;
 using HarmonyLib;
-using MelonLoader;
+using Sirenix.Utilities;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.UI;
 
-[assembly: MelonInfo(typeof(Tweaks.Plugin), "Tweaks", "0.0.1", "nozwock")]
-
 namespace Tweaks;
 
-public class Plugin : MelonMod
+[BepInAutoPlugin(id: "nozwock.Tweaks")]
+public partial class Plugin : BaseUnityPlugin
 {
-    private HarmonyLib.Harmony? harmony;
+    private Harmony? harmony;
     private InputAction? quickloadAction;
     private SynchronizationContext? defaultContext;
 
-    public override void OnInitializeMelon()
+    private void Awake()
     {
-        base.OnInitializeMelon();
-
-        harmony = new("nozwock.tweaks");
+        harmony = new(Id);
         try
         {
-            harmony.PatchAll(MelonAssembly.Assembly);
+            harmony.PatchAll(Assembly.GetExecutingAssembly());
         }
-        catch (Exception e)
+        catch (Exception ex)
         {
-            MelonLogger.Msg(e);
+            Logger.LogError(ex);
         }
 
         // TODO: Main Menu Continue seems to not be using m_saveTime for getting the recent save file
@@ -45,10 +43,10 @@ public class Plugin : MelonMod
         // Quicksaving feature from ever overwriting the named quicksave
         // TODO: Don't show maxed out skills in Cultivation training menu
 
-        MelonLogger.Msg($"Harmony patches applied: {harmony.GetPatchedMethods().Count()}");
+        Logger.LogInfo($"Harmony patches applied: {harmony.GetPatchedMethods().Count()}");
         foreach (var m in harmony.GetPatchedMethods())
         {
-            MelonLogger.Msg($"{m.DeclaringType.FullName}.{m.Name}");
+            Logger.LogInfo($"{m.DeclaringType.FullName}.{m.Name}");
         }
 
         quickloadAction = new(name: "QuickLoad", type: InputActionType.Button, binding: "<Keyboard>/f9");
@@ -69,14 +67,12 @@ public class Plugin : MelonMod
         RemoveMartialArtMoralityCondition();
     }
 
-    public override void OnDeinitializeMelon()
+    private void OnDestroy()
     {
-        base.OnDeinitializeMelon();
-
         harmony?.UnpatchSelf();
         harmony = null;
 
-        MelonLogger.Msg("Harmony patches unapplied!");
+        Logger.LogInfo("Harmony patches unapplied!");
     }
 
     private static void RemoveMartialArtMoralityCondition()
@@ -107,6 +103,7 @@ public class Plugin : MelonMod
 
     private void SpawnConsoleCommandReader()
     {
+        // FIXME: Console.Readline no longer works in BepInEx console
         defaultContext = SynchronizationContext.Current;
         new Thread(() =>
         {
@@ -119,7 +116,7 @@ public class Plugin : MelonMod
                     var cmd = splits[0].ToLower();
                     if (cmd == "maxskill")
                     {
-                        MelonLogger.Msg("Maxing out All Martial Skills");
+                        Logger.LogInfo("Maxing out All Martial Skills");
                         defaultContext?.Post(_ =>
                         {
                             foreach (var kvp in WuXue.Dic)
@@ -144,12 +141,12 @@ public class Plugin : MelonMod
                         {
                             if (SaveManager.Instance.SaveData.NpcDic.TryGetValue(id, out var npc))
                             {
-                                MelonLogger.Msg($"Assigning NPC \"{npc.Name}\" ({id}) to Lover (Crimson Veil) camp");
+                                Logger.LogInfo($"Assigning NPC \"{npc.Name}\" ({id}) to Lover (Crimson Veil) camp");
                                 npc.m_camp = NpcCamp.情缘;
                             }
                             else
                             {
-                                MelonLogger.Msg($"NPC {id} not found");
+                                Logger.LogInfo($"NPC {id} not found");
                             }
                         }, null);
                     }
@@ -161,7 +158,7 @@ public class Plugin : MelonMod
 
                         if (Item.Get(id) != null)
                         {
-                            MelonLogger.Msg($"Added Item: id={id}, count={count}");
+                            Logger.LogInfo($"Added Item: id={id}, count={count}");
                             defaultContext?.Post(_ =>
                             {
                                 SaveManager.Instance.SaveData.AddItems([id], [count]);
@@ -169,7 +166,7 @@ public class Plugin : MelonMod
                         }
                         else
                         {
-                            MelonLogger.Msg($"Invalid Item: id={id}");
+                            Logger.LogInfo($"Invalid Item: id={id}");
                         }
                     }
                 }

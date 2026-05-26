@@ -28,9 +28,9 @@ internal class Role_ctor_Patch
             return;
         _seen.Add(self, null);
 
-        var cfg = Config.Instance;
+        var cfg = ModConfig.Instance;
         if (ai
-            && (cfg.StatMultiplierScope.Value == Config.StatMultiplierConstraint.AllAi
+            && (cfg.StatMultiplierScope.Value == ModConfig.StatMultiplierConstraint.AllAi
             || camp == Fight.CampType.Enermy))
         {
             self.m_maxHp = Mathf.RoundToInt(self.m_maxHp * cfg.HpMultiplier.Value);

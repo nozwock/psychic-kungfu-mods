@@ -28,7 +28,8 @@ install mods_dir='': build
         mods_dir="$MOD_PATH"
     fi
 
-    dest="$mods_dir"
+    assembly_name="$(dotnet msbuild -getProperty:AssemblyName *.csproj)"
+    dest="$mods_dir/$assembly_name"
 
     just _copy-mod-to "$dest"
 
@@ -41,12 +42,14 @@ pack output_dir: build
     }
     trap cleanup EXIT
 
-    modname="{{ file_name(justfile_directory()) }}"
-    dest="$tempdir"
+    assembly_name="$(dotnet msbuild -getProperty:AssemblyName *.csproj)"
+    modname="$assembly_name"
+
+    dest="$tempdir/$assembly_name"
 
     just _copy-mod-to "$dest"
 
     zip="{{ output_dir }}/$modname.zip"
     rm -f "$zip"
 
-    7z a "$zip" "$dest"/*
+    7z a "$zip" "$tempdir"/*
