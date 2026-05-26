@@ -222,7 +222,8 @@ public partial class Plugin : BaseUnityPlugin
             private static SaveData UpdateSaveName(SaveData saveData, string parent, string path)
             {
                 var filename = Path.GetFileNameWithoutExtension(path);
-                if (saveData.m_name != filename && !managedSaveRegex.IsMatch(saveData.m_name))
+                if (saveData.m_name == null
+                    || (saveData.m_name != filename && !managedSaveRegex.IsMatch(saveData.m_name)))
                 {
                     var filepath = Path.Combine(parent, path);
                     saveData.m_path = filepath;
