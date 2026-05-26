@@ -44,10 +44,10 @@ class Config
         DefenseMultiplier = CategoryStatMultipliers.CreateEntry("Defense", 1.0f);
         SpeedMultiplier = CategoryStatMultipliers.CreateEntry("Speed", 1.0f);
 
-        CategoryGeneral.SetFilePath(_filename);
-        CategoryStatMultipliers.SetFilePath(_filename);
+        CategoryGeneral.SetFilePath(_filename, autoload: true, printmsg: false);
+        CategoryStatMultipliers.SetFilePath(_filename, autoload: true, printmsg: false);
 
-        CategoryGeneral.SaveToFile();
-        CategoryStatMultipliers.SaveToFile();
+        CategoryGeneral.SaveToFile(printmsg: false);
+        CategoryStatMultipliers.SaveToFile(printmsg: false);
     }
 }
