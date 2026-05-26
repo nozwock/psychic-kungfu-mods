@@ -23,8 +23,9 @@ class Config
     private MelonPreferences_Category CategoryStatMultipliers { get; }
     public MelonPreferences_Entry<float> HpMultiplier { get; }
     public MelonPreferences_Entry<float> MpMultiplier { get; }
-    public MelonPreferences_Entry<float> AtkMultiplier { get; }
-    public MelonPreferences_Entry<float> DefMultiplier { get; }
+    public MelonPreferences_Entry<float> AttackMultiplier { get; }
+    public MelonPreferences_Entry<float> PierceMultiplier { get; }
+    public MelonPreferences_Entry<float> DefenseMultiplier { get; }
     public MelonPreferences_Entry<float> SpeedMultiplier { get; }
 
     private Config()
@@ -38,8 +39,9 @@ class Config
         CategoryStatMultipliers = MelonPreferences.CreateCategory("StatMultipliers");
         HpMultiplier = CategoryStatMultipliers.CreateEntry("Hp", 1.0f);
         MpMultiplier = CategoryStatMultipliers.CreateEntry("Mp", 1.0f);
-        AtkMultiplier = CategoryStatMultipliers.CreateEntry("Atk", 1.0f);
-        DefMultiplier = CategoryStatMultipliers.CreateEntry("Def", 1.0f);
+        AttackMultiplier = CategoryStatMultipliers.CreateEntry("Attack", 1.0f);
+        PierceMultiplier = CategoryStatMultipliers.CreateEntry("Pierce", 1.0f);
+        DefenseMultiplier = CategoryStatMultipliers.CreateEntry("Defense", 1.0f);
         SpeedMultiplier = CategoryStatMultipliers.CreateEntry("Speed", 1.0f);
 
         CategoryGeneral.SetFilePath(_filename);
