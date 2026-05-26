@@ -5,12 +5,22 @@ namespace DifficultyMultiplier;
 
 class Config
 {
+    public enum StatMultiplierConstraint
+    {
+        OnlyEnemyAi,
+        AllAi,
+    }
+
+    private static readonly string _filename = $"UserData/{Plugin.Id}.cfg";
+
     private static readonly Lazy<Config> _instance = new(() => new Config());
 
     public static Config Instance => _instance.Value;
 
-    private MelonPreferences_Category Category { get; }
+    private MelonPreferences_Category CategoryGeneral { get; }
+    public MelonPreferences_Entry<StatMultiplierConstraint> StatMultiplierScope { get; }
 
+    private MelonPreferences_Category CategoryStatMultipliers { get; }
     public MelonPreferences_Entry<float> HpMultiplier { get; }
     public MelonPreferences_Entry<float> MpMultiplier { get; }
     public MelonPreferences_Entry<float> AtkMultiplier { get; }
@@ -19,15 +29,23 @@ class Config
 
     private Config()
     {
-        Category = MelonPreferences.CreateCategory("DifficultyMultiplier");
+        CategoryGeneral = MelonPreferences.CreateCategory("General");
+        StatMultiplierScope = CategoryGeneral.CreateEntry(
+            "Scope",
+            StatMultiplierConstraint.OnlyEnemyAi,
+            description: $"Valid values: {string.Join(", ", Enum.GetNames(typeof(StatMultiplierConstraint)))}");
 
-        HpMultiplier = Category.CreateEntry("Hp", 1.0f);
-        MpMultiplier = Category.CreateEntry("Mp", 1.0f);
-        AtkMultiplier = Category.CreateEntry("Atk", 1.0f);
-        DefMultiplier = Category.CreateEntry("Def", 1.0f);
-        SpeedMultiplier = Category.CreateEntry("Speed", 1.0f);
+        CategoryStatMultipliers = MelonPreferences.CreateCategory("StatMultipliers");
+        HpMultiplier = CategoryStatMultipliers.CreateEntry("Hp", 1.0f);
+        MpMultiplier = CategoryStatMultipliers.CreateEntry("Mp", 1.0f);
+        AtkMultiplier = CategoryStatMultipliers.CreateEntry("Atk", 1.0f);
+        DefMultiplier = CategoryStatMultipliers.CreateEntry("Def", 1.0f);
+        SpeedMultiplier = CategoryStatMultipliers.CreateEntry("Speed", 1.0f);
 
-        Category.SetFilePath("UserData/DifficultyMultiplier.cfg");
-        Category.SaveToFile();
+        CategoryGeneral.SetFilePath(_filename);
+        CategoryStatMultipliers.SetFilePath(_filename);
+
+        CategoryGeneral.SaveToFile();
+        CategoryStatMultipliers.SaveToFile();
     }
 }

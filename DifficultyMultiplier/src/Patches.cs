@@ -19,7 +19,7 @@ internal class Role_ctor_Patch
 {
     private static readonly ConditionalWeakTable<Role, object?> _seen = new();
 
-    private static void Postfix(Role __instance, bool ai)
+    private static void Postfix(Role __instance, Fight.CampType camp, bool ai)
     {
         // For some reason .ctor is being called twice for each newobj `new T()` call... I don't know why. Same thing
         // happens with a MonoMod Hook patch, so it can't be a Harmony issue.
@@ -28,9 +28,11 @@ internal class Role_ctor_Patch
             return;
         _seen.Add(self, null);
 
-        if (ai)
+        var cfg = Config.Instance;
+        if (ai
+            && (cfg.StatMultiplierScope.Value == Config.StatMultiplierConstraint.AllAi
+            || camp == Fight.CampType.Enermy))
         {
-            var cfg = Config.Instance;
             self.m_maxHp = Mathf.RoundToInt(self.m_maxHp * cfg.HpMultiplier.Value);
             self.m_maxMp = Mathf.RoundToInt(self.m_maxMp * cfg.MpMultiplier.Value);
             self.m_atk = Mathf.RoundToInt(self.m_atk * cfg.AtkMultiplier.Value);

@@ -8,13 +8,15 @@ namespace DifficultyMultiplier;
 
 public class Plugin : MelonMod
 {
+    public static readonly string Id = "nozwock.DifficultyMultiplier";
+
     private HarmonyLib.Harmony? harmony;
 
     public override void OnInitializeMelon()
     {
         _ = Config.Instance;
 
-        harmony = new("nozwock.DifficultyMultiplier");
+        harmony = new(Id);
         try
         {
             harmony.PatchAll(MelonAssembly.Assembly);
