@@ -45,7 +45,9 @@ pack output_dir: build
     assembly_name="$(dotnet msbuild -getProperty:AssemblyName *.csproj)"
     modname="$assembly_name"
 
-    dest="$tempdir/$assembly_name"
+    # For NexusMods
+    # https://github.com/Nexus-Mods/Vortex/blob/31cc78b1c90d2bf5fae8ee258be0fe0572480249/extensions/modtype-bepinex/src/installers.ts#L171-L173
+    dest="$tempdir/plugins/$assembly_name"
 
     just _copy-mod-to "$dest"
 
