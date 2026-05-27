@@ -2,7 +2,7 @@ using BepInEx.Configuration;
 
 namespace DifficultyOverhaul;
 
-class ModConfig
+internal class ModConfig
 {
     public enum StatMultiplierConstraint
     {
