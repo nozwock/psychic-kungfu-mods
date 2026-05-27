@@ -1,4 +1,3 @@
-using System.Runtime.CompilerServices;
 using HarmonyLib;
 using UnityEngine;
 
@@ -17,17 +16,11 @@ namespace DifficultyOverhaul.Patches;
     ])]
 internal class Role_ctor_Patch
 {
-    private static readonly ConditionalWeakTable<Role, object?> _seen = new();
-
     private static void Postfix(Role __instance, Fight.CampType camp, bool ai)
     {
-        // For some reason .ctor is being called twice for each newobj `new T()` call... I don't know why. Same thing
-        // happens with a MonoMod Hook patch, so it can't be a Harmony issue.
+        // NOTE: This ctor postfix patch gets invoked twice per each new Role instance (newobj) *if* melonloader is used
+        // for the plugin/patch. This issue doesn't occur on BepInEx, I tested. Why? How? Idk.
         var self = __instance;
-        if (_seen.TryGetValue(self, out _))
-            return;
-        _seen.Add(self, null);
-
         var cfg = ModConfig.Instance;
         if (ai
             && (cfg.StatMultiplierScope.Value == ModConfig.StatMultiplierConstraint.AllAi
