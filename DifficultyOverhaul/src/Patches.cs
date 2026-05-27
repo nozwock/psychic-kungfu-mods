@@ -6,7 +6,7 @@ namespace DifficultyOverhaul.Patches;
 [HarmonyPatch(
     typeof(Role),
     MethodType.Constructor,
-[
+    [
         typeof(int),
         typeof(Fight.CampType),
         typeof(GameObject),
