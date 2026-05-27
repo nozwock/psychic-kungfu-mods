@@ -2,6 +2,7 @@ using System;
 using System.Linq;
 using System.Reflection;
 using BepInEx;
+using BepInEx.Logging;
 
 namespace DifficultyOverhaul;
 
@@ -9,13 +10,18 @@ namespace DifficultyOverhaul;
 public partial class Plugin : BaseUnityPlugin
 {
     internal static Plugin Instance { get; private set; } = null!;
+    internal new ManualLogSource Logger { get; }
 
     private HarmonyLib.Harmony? _harmony;
 
-    private void Awake()
+    public Plugin()
     {
         Instance = this;
+        Logger = base.Logger;
+    }
 
+    private void Awake()
+    {
         _ = ModConfig.Instance;
 
         _harmony = new(Id);
