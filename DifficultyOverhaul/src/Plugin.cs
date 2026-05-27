@@ -16,12 +16,12 @@ public partial class Plugin : BaseUnityPlugin
 
     public Plugin()
     {
-        Instance = this;
         Logger = base.Logger;
     }
 
     private void Awake()
     {
+        Instance = this;
         _ = ModConfig.Instance;
 
         _harmony = new(Id);
