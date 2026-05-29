@@ -8,7 +8,7 @@ using UnityEngine;
 namespace VanillaPlus.Patches;
 
 [HarmonyPatch(typeof(SaveData), nameof(SaveData.FullName), MethodType.Getter)]
-internal class SaveData_get_FileName_FixPlayerName
+internal class SaveData_get_FileName_FixPlayerName_Patch
 {
     private static bool Prefix(SaveData __instance, ref string __result)
     {
