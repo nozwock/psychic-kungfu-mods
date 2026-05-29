@@ -1,27 +1,20 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using System.Reflection;
-using System.Reflection.Emit;
 using System.Runtime.CompilerServices;
-using System.Text.RegularExpressions;
 using System.Threading;
 using BepInEx;
 using DBLoad;
 using HarmonyLib;
-using Sirenix.Utilities;
 using UnityEngine;
-using UnityEngine.InputSystem;
 using UnityEngine.UI;
 
-namespace Tweaks;
+namespace VanillaPlus;
 
 [BepInAutoPlugin(id: "nozwock.Tweaks")]
 public partial class Plugin : BaseUnityPlugin
 {
     private Harmony? harmony;
-    private InputAction? quickloadAction;
     private SynchronizationContext? defaultContext;
 
     private void Awake()
@@ -48,19 +41,6 @@ public partial class Plugin : BaseUnityPlugin
         {
             Logger.LogInfo($"{m.DeclaringType.FullName}.{m.Name}");
         }
-
-        quickloadAction = new(name: "QuickLoad", type: InputActionType.Button, binding: "<Keyboard>/f9");
-        quickloadAction.performed += ctx =>
-        {
-            // TODO: Add rebinding support
-            var save = SaveManager.Instance.GetSaves(SaveEnum.快速).FirstOrDefault();
-            if (save != null)
-            {
-                SaveManager.Instance.Load(save);
-                UIUtlils.RollUpTips($"Loaded {save.m_name}");
-            }
-        };
-        quickloadAction.Enable();
 
         SpawnConsoleCommandReader();
 
@@ -202,66 +182,6 @@ public partial class Plugin : BaseUnityPlugin
         private static void SaveData_set_TiLi_InfiniteStamina_Prefix(ref int value)
         {
             value = 999999; // Will get clamped to max value
-        }
-
-        [HarmonyPrefix]
-        [HarmonyPatch(typeof(SaveData), nameof(SaveData.FullName), MethodType.Getter)]
-        private static bool SaveData_get_FileName_FixPlayerName_Prefix(SaveData __instance, ref string __result)
-        {
-            var self = __instance;
-            var separator = GameSetting.GetValue(SettingEnum.Language) == 2 ? " " : "";
-            __result = self.m_leaderFamily + separator + self.m_leaderName;
-            return false;
-        }
-
-        [HarmonyPatch(typeof(SaveManager), nameof(SaveManager.Load), [typeof(string), typeof(string)])]
-        private class SaveManager_Load_PrioritizeSaveFilename_Patch
-        {
-            private static readonly Regex managedSaveRegex = new("^(?:Fixed(\\d+)|Quick(\\d+)|AutoSave\\d+)$");
-
-            private static SaveData UpdateSaveName(SaveData saveData, string parent, string path)
-            {
-                var filename = Path.GetFileNameWithoutExtension(path);
-                if (saveData.m_name == null
-                    || (saveData.m_name != filename && !managedSaveRegex.IsMatch(saveData.m_name)))
-                {
-                    var filepath = Path.Combine(parent, path);
-                    saveData.m_path = filepath;
-                    saveData.m_name = filename;
-
-                    File.WriteAllBytes(
-                        saveData.m_path,
-                        SaveManager.Instance.Encrypt(JsonUtility.ToJson(saveData)));
-                }
-
-                return saveData;
-            }
-
-            private static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> instructions)
-            {
-                var saveDataFromJsonMethod = AccessTools.Method(
-                    typeof(JsonUtility),
-                    nameof(JsonUtility.FromJson),
-                    [typeof(string)]
-                ).MakeGenericMethod(typeof(SaveData));
-
-                var updateSaveNameMethod = AccessTools.Method(
-                    typeof(SaveManager_Load_PrioritizeSaveFilename_Patch),
-                    nameof(UpdateSaveName)
-                );
-
-                foreach (var code in instructions)
-                {
-                    yield return code;
-
-                    if (code.Calls(saveDataFromJsonMethod))
-                    {
-                        yield return new CodeInstruction(OpCodes.Ldarg_1);
-                        yield return new CodeInstruction(OpCodes.Ldarg_2);
-                        yield return new CodeInstruction(OpCodes.Call, updateSaveNameMethod);
-                    }
-                }
-            }
         }
 
         [HarmonyPostfix]
