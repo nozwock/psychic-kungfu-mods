@@ -11,10 +11,11 @@ namespace VanillaPlus;
 public partial class Plugin : BaseUnityPlugin
 {
     private Harmony? harmony;
-    private InputAction? quickloadAction;
 
     private void Awake()
     {
+        InitActions();
+
         harmony = new(Id);
         try
         {
@@ -37,9 +38,23 @@ public partial class Plugin : BaseUnityPlugin
         {
             Logger.LogInfo($"{m.DeclaringType.FullName}.{m.Name}");
         }
+    }
 
-        quickloadAction = new(name: "QuickLoad", type: InputActionType.Button, binding: "<Keyboard>/f9");
-        quickloadAction.performed += ctx =>
+    private void OnDestroy()
+    {
+        harmony?.UnpatchSelf();
+        harmony = null;
+
+        Logger.LogInfo("Harmony patches unapplied!");
+    }
+
+    private void InitActions()
+    {
+        var quickload = InputManager.Instance.m_main.AddAction(
+            $"{Id}.QuickLoad",
+            type: InputActionType.Button,
+            binding: "<Keyboard>/f9");
+        quickload.performed += ctx =>
         {
             // TODO: Add rebinding support
             var save = SaveManager.Instance.GetSaves(SaveEnum.快速).FirstOrDefault();
@@ -49,14 +64,5 @@ public partial class Plugin : BaseUnityPlugin
                 UIUtlils.RollUpTips($"Loaded {save.m_name}");
             }
         };
-        quickloadAction.Enable();
-    }
-
-    private void OnDestroy()
-    {
-        harmony?.UnpatchSelf();
-        harmony = null;
-
-        Logger.LogInfo("Harmony patches unapplied!");
     }
 }
