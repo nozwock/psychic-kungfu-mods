@@ -10,10 +10,14 @@ namespace VanillaPlus;
 [BepInAutoPlugin(id: "nozwock.VanillaPlus")]
 public partial class Plugin : BaseUnityPlugin
 {
+    internal static Plugin Instance { get; private set; } = null!;
+
     private Harmony? harmony;
 
     private void Awake()
     {
+        Instance = this;
+
         InitActions();
 
         harmony = new(Id);
