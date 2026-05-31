@@ -14,8 +14,14 @@ namespace Common.JinGu;
 
 internal class InputRebindUIRegistry : IDisposable
 {
+    private record class RebindableAction(
+        InputAction Action,
+        string DisplayName,
+        RebindUIPosition Position
+    );
+
     private readonly ConditionalWeakTable<GoTable, InputAction> _goTableActions = new();
-    private readonly Dictionary<string, (InputAction Action, string DisplayName)> _actionsNameMap = [];
+    private readonly Dictionary<string, RebindableAction> _actionsNameMap = [];
     private readonly List<IDetour> _detours = [];
 
     private readonly MethodInfo _method_OptionWindow_OnAwake_SetInput;
@@ -57,11 +63,14 @@ internal class InputRebindUIRegistry : IDisposable
     /// <para/>
     /// Call only from the Unity thread (default plugin thread).
     /// </summary>
-    public void RegisterRebindableAction(string displayName, InputAction action, string? id = null)
+    public void RegisterRebindableAction(
+        string displayName,
+        InputAction action,
+        string? id = null,
+        RebindUIPosition? position = null)
     {
-        // TODO: Allow setting sibling index or positioning before/after existing options
         Debug.Log($"Registering rebindable action: id=\"{id ?? action.name}\" displayName=\"{displayName}\"");
-        _actionsNameMap[id ?? action.name] = new(action, displayName);
+        _actionsNameMap[id ?? action.name] = new(action, displayName, position ?? RebindUIPosition.End());
     }
 
     private void Hook_OptionWindow_OnAwake(Action<OptionWindow> orig, OptionWindow self)
@@ -117,6 +126,18 @@ internal class InputRebindUIRegistry : IDisposable
 
     private void CreateControlGameObjects(GameObject prefab)
     {
+        static int GetSiblingIndexByName(Transform parent, string? childGoName)
+        {
+            if (childGoName == null) return parent.childCount;
+            for (var i = parent.childCount - 1; i >= 0; i--)
+            {
+                var child = parent.GetChild(i);
+                if (child.name == childGoName)
+                    return child.GetSiblingIndex();
+            }
+            return parent.childCount;
+        }
+
         if (_controlPrefab == null)
         {
             _controlPrefab = UnityEngine.Object.Instantiate(prefab);
@@ -125,19 +146,62 @@ internal class InputRebindUIRegistry : IDisposable
         }
 
         Debug.Log($"Pending control count: {_actionsNameMap.Count}");
-        foreach (var kvp in _actionsNameMap)
+        foreach (var (id, rebindable) in _actionsNameMap)
         {
-            Debug.Log($"Creating custom control GameObject: id=\"{kvp.Key}\"");
+            Debug.Log($"Creating custom control GameObject: id=\"{id}\"");
 
-            var go = UnityEngine.Object.Instantiate(_controlPrefab, prefab.transform.parent);
-            go.name = kvp.Key;
+            var parent = prefab.transform.parent;
+            var go = UnityEngine.Object.Instantiate(_controlPrefab, parent);
+            go.name = id;
 
             var langKey = go.transform.GetComponentInChildren<LanguageKey>();
-            langKey.GetComponent<Text>().text = kvp.Value.DisplayName;
+            langKey.GetComponent<Text>().text = rebindable.DisplayName;
+
+            switch (rebindable.Position.Type)
+            {
+                case RebindUIPosition.Kind.Index:
+                    go.transform.SetSiblingIndex(rebindable.Position.Index);
+                    break;
+                case RebindUIPosition.Kind.Before:
+                    go.transform.SetSiblingIndex(GetSiblingIndexByName(parent, rebindable.Position.Target));
+                    break;
+                case RebindUIPosition.Kind.After:
+                    go.transform.SetSiblingIndex(GetSiblingIndexByName(parent, rebindable.Position.Target) + 1);
+                    break;
+                case RebindUIPosition.Kind.End:
+                    break;
+            }
 
             go.SetActive(true);
 
-            _goTableActions.Add(go.GetComponent<GoTable>(), kvp.Value.Action);
+            _goTableActions.Add(go.GetComponent<GoTable>(), rebindable.Action);
         }
+    }
+}
+
+internal readonly struct RebindUIPosition
+{
+    public enum Kind
+    {
+        End,
+        Index,
+        Before,
+        After
+    }
+
+    public Kind Type { get; }
+    public int Index { get; }
+    public string? Target { get; }
+
+    public static RebindUIPosition AtIndex(int index) => new(Kind.Index, index);
+    public static RebindUIPosition Before(string target) => new(Kind.Before, 0, target);
+    public static RebindUIPosition After(string target) => new(Kind.After, 0, target);
+    public static RebindUIPosition End() => new(Kind.End, 0);
+
+    private RebindUIPosition(Kind type, int index, string? target = null)
+    {
+        Type = type;
+        Index = index;
+        Target = target;
     }
 }
