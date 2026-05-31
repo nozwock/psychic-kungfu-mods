@@ -14,9 +14,8 @@
     <LangVersion>14</LangVersion>
     <Nullable>enable</Nullable>
 
-    <!-- Avoids embedding full paths in built DLLs -->
+    <!-- Enable ContinuousIntegrationBuild in builds to avoid embedding full paths in built DLLs -->
     <Deterministic>true</Deterministic>
-    <PathMap>$(MSBuildProjectDirectory)=.</PathMap>
 
     <RestoreAdditionalProjectSources>
       https://api.nuget.org/v3/index.json;

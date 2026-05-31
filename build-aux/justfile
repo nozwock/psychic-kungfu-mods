@@ -5,13 +5,13 @@ set dotenv-required := true
 
 release:
     if [ -f *.csproj ]; then \
-        dotnet publish -c Release -p:SkipCopyMod=true *.csproj; \
+        dotnet publish -c Release -p:SkipCopyMod=true -p:ContinuousIntegrationBuild=true *.csproj; \
     fi
 
 [default]
 build:
     if [ -f *.csproj ]; then \
-        dotnet publish -c Debug -p:SkipCopyMod=true *.csproj ; \
+        dotnet publish -c Debug -p:SkipCopyMod=true -p:ContinuousIntegrationBuild=true *.csproj ; \
     fi
 
 [script]
