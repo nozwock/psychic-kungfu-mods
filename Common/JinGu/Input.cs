@@ -146,29 +146,36 @@ internal class InputRebindUIRegistry : IDisposable
     {
         orig(self);
 
-        if (_field_OptionWindow_OnAwake_goTable == null)
-            _field_OptionWindow_OnAwake_goTable = AccessTools.Field(self.GetType(), "goTable");
-
-        var goTable = (GoTable)_field_OptionWindow_OnAwake_goTable.GetValue(self);
-        var controlPageGoTable = goTable.GetNode<GoTable>("ControlPage_GoTable");
-        var controlGoTable = controlPageGoTable.m_list
-            .Select(it => it.obj)
-            .OfType<GoTable>()
-            .First();
-
-        var controlsContainer = controlGoTable.transform.parent;
-        for (var i = controlsContainer.childCount - 1; i >= 0; i--)
+        try
         {
-            var childGoTable = controlsContainer.GetChild(i).GetComponent<GoTable>();
-            if (_goTableActions.TryGetValue(childGoTable, out var action))
+            if (_field_OptionWindow_OnAwake_goTable == null)
+                _field_OptionWindow_OnAwake_goTable = AccessTools.Field(self.GetType(), "goTable");
+
+            var goTable = (GoTable)_field_OptionWindow_OnAwake_goTable.GetValue(self);
+            var controlPageGoTable = goTable.GetNode<GoTable>("ControlPage_GoTable");
+            var controlGoTable = controlPageGoTable.m_list
+                .Select(it => it.obj)
+                .OfType<GoTable>()
+                .First();
+
+            var controlsContainer = controlGoTable.transform.parent;
+            for (var i = controlsContainer.childCount - 1; i >= 0; i--)
             {
-                Debug.Log(
-                    "Updating custom control: " +
-                    $"id=\"{childGoTable.gameObject.name}\" goTableName=\"{childGoTable.name}\"");
-                // XXX Could just have a hardcoded copy of this SetInput local method instead of calling it via
-                // reflection.
-                _method_OptionWindow_OnAwake_SetInput.Invoke(self, [childGoTable, action, 0]);
+                var childGoTable = controlsContainer.GetChild(i).GetComponent<GoTable>();
+                if (_goTableActions.TryGetValue(childGoTable, out var action))
+                {
+                    Debug.Log(
+                        "Updating custom control: " +
+                        $"id=\"{childGoTable.gameObject.name}\" goTableName=\"{childGoTable.name}\"");
+                    // XXX Could just have a hardcoded copy of this SetInput local method instead of calling it via
+                    // reflection.
+                    _method_OptionWindow_OnAwake_SetInput.Invoke(self, [childGoTable, action, 0]);
+                }
             }
+        }
+        catch (Exception ex)
+        {
+            Debug.LogError(ex);
         }
     }
 
