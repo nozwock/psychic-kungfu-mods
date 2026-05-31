@@ -22,11 +22,29 @@ internal class InputRebindUIRegistry : IDisposable
 
     private readonly ConditionalWeakTable<GoTable, InputAction> _goTableActions = new();
     private readonly Dictionary<string, RebindableAction> _actionsNameMap = [];
+    private readonly HashSet<Action<InputManager>> _inputManagerAwakeListeners = [];
     private readonly List<IDetour> _detours = [];
 
     private readonly MethodInfo _method_OptionWindow_OnAwake_SetInput;
     private FieldInfo? _field_OptionWindow_OnAwake_goTable;
     private GameObject? _controlPrefab;
+
+    /// <summary>
+    /// Use this event to attach or register <see cref="InputAction"/> instances to the <see cref="InputManager"/>'s
+    /// <see cref="InputActionMap"/>s.
+    /// <para/>
+    /// This is the only safe point to modify input setup. Accessing <see cref="InputManager.Instance"/> directly may
+    /// occur before internal state (e.g. <see cref="InputManager.m_main"/>) and action maps are fully initialized,
+    /// leading to errors.
+    /// <para/>
+    /// This event is invoked only once when the <see cref="InputManager"/> has completed initialization since it's a
+    /// singleton.
+    /// </summary>
+    public event Action<InputManager> InputManagerAwake
+    {
+        add => _inputManagerAwakeListeners.Add(value);
+        remove => _inputManagerAwakeListeners.Remove(value);
+    }
 
     public InputRebindUIRegistry()
     {
@@ -39,11 +57,17 @@ internal class InputRebindUIRegistry : IDisposable
             $"<{nameof(OptionWindow.OnAwake)}>g__SetControl",
             []);
 
+        // Default doesn't include NonPublic I think
+        var instanceBindingAttr = BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic;
+
         // MonoMod is used instead of Harmony since we want to manage the hooks ourselves here in the class instance and
         // there's no way to skip Harmony patches from being included in PatchAll(Assembly.GetExecutingAssembly()).
         _detours.AddRange([
             new Hook(
-                typeof(OptionWindow).GetMethod(nameof(OptionWindow.OnAwake)),
+                typeof(InputManager).GetMethod(nameof(InputManager.Awake), instanceBindingAttr),
+                Hook_InputManager_Awake),
+            new Hook(
+                typeof(OptionWindow).GetMethod(nameof(OptionWindow.OnAwake), instanceBindingAttr),
                 Hook_OptionWindow_OnAwake),
             new Hook(method_OptionWindow_OnAwake_SetControl, Hook_OptionWindow_OnAwake_CreateControl)
         ]);
@@ -71,6 +95,27 @@ internal class InputRebindUIRegistry : IDisposable
     {
         Debug.Log($"Registering rebindable action: id=\"{id ?? action.name}\" displayName=\"{displayName}\"");
         _actionsNameMap[id ?? action.name] = new(action, displayName, position ?? RebindUIPosition.End());
+    }
+
+    private void Hook_InputManager_Awake(Action<InputManager> orig, InputManager self)
+    {
+        orig(self);
+
+        self.m_asset.Disable(); // To allow adding to InputManager's InputActionMap
+        foreach (var listener in _inputManagerAwakeListeners)
+        {
+            try
+            {
+                listener(self);
+            }
+            catch (Exception ex)
+            {
+                Debug.Log(ex);
+            }
+        }
+        self.m_asset.Enable();
+
+        _inputManagerAwakeListeners.Clear();
     }
 
     private void Hook_OptionWindow_OnAwake(Action<OptionWindow> orig, OptionWindow self)
