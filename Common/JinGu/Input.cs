@@ -121,7 +121,7 @@ internal class InputRebindUIRegistry : IDisposable
         {
             _controlPrefab = UnityEngine.Object.Instantiate(prefab);
             _controlPrefab.SetActive(false);
-            _controlPrefab.name = "JinGuRebind_Control_Prefab";
+            _controlPrefab.name = $"{nameof(InputRebindUIRegistry)}_Control_Prefab";
         }
 
         Debug.Log($"Pending control count: {_actionsNameMap.Count}");
