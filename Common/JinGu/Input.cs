@@ -12,6 +12,9 @@ using UnityEngine.UI;
 
 namespace Common.JinGu;
 
+/// <summary>
+/// Type is not thread-safe. So, only call methods from the Unity thread (default plugin thread).
+/// </summary>
 internal class InputRebindUIRegistry : IDisposable
 {
     private record class RebindableAction(
@@ -46,6 +49,7 @@ internal class InputRebindUIRegistry : IDisposable
         remove => _inputManagerAwakeListeners.Remove(value);
     }
 
+    /// <inheritdoc cref="InputRebindUIRegistry"/>
     public InputRebindUIRegistry()
     {
         // TODO: Persist bindings on disk.
@@ -85,7 +89,6 @@ internal class InputRebindUIRegistry : IDisposable
     /// <para/>
     /// If <paramref name="id"/> is null, <see cref="InputAction.name"/> will be used in its place.
     /// <para/>
-    /// Call only from the Unity thread (default plugin thread).
     /// </summary>
     public void RegisterRebindableAction(
         string displayName,
