@@ -3,25 +3,30 @@ set dotenv-required := true
 # Define MOD_PATH in .env
 # No backslashes in path
 
-[default]
-build:
+release:
     if [ -f *.csproj ]; then \
         dotnet publish -c Release -p:SkipCopyMod=true *.csproj; \
     fi
 
+[default]
+build:
+    if [ -f *.csproj ]; then \
+        dotnet publish -c Debug -p:SkipCopyMod=true *.csproj ; \
+    fi
+
 [script]
-_copy-mod-to mods_dir:
+_copy-mod-to mods_dir type:
     {{ assert(trim(mods_dir) != '', 'Empty mods_dir') }}
 
     dest="{{ mods_dir }}"
     mkdir -p "$dest"
 
     echo >&2 "Copying mod to \"$dest\""
-    cp -t "$dest" bin/Release/*/publish/*
+    cp -t "$dest" bin/{{ type }}/net472/publish/*
 
 [arg("mods_dir", help="Default is MOD_PATH env var if empty")]
 [script]
-install mods_dir='': build
+dev mods_dir='': build
     mods_dir='{{ mods_dir }}'
     if [ '{{ trim(mods_dir) }}' = '' ]; then
         {{ assert(trim(env('MOD_PATH', '')) != '', 'Missing or empty MOD_PATH env var') }}
@@ -31,11 +36,11 @@ install mods_dir='': build
     assembly_name="$(dotnet msbuild -getProperty:AssemblyName *.csproj)"
     dest="$mods_dir/$assembly_name"
 
-    just _copy-mod-to "$dest"
+    just _copy-mod-to "$dest" Debug
 
 [doc("Package mod in a zip archive.")]
 [script]
-pack output_dir: build
+pack output_dir: release
     tempdir="$(mktemp -d)"
     function cleanup() {
         rm -rf "$tempdir"
@@ -49,7 +54,7 @@ pack output_dir: build
     # https://github.com/Nexus-Mods/Vortex/blob/31cc78b1c90d2bf5fae8ee258be0fe0572480249/extensions/modtype-bepinex/src/installers.ts#L171-L173
     dest="$tempdir/plugins/$assembly_name"
 
-    just _copy-mod-to "$dest"
+    just _copy-mod-to "$dest" Release
 
     zip="{{ output_dir }}/$modname.zip"
     rm -f "$zip"
