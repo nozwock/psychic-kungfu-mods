@@ -4,7 +4,7 @@ using System.Reflection;
 
 namespace Common.Extensions;
 
-public static class ReflectionExtensions
+internal static class ReflectionExtensions
 {
     public static bool MatchMethodArguments(this MethodInfo method, Type[] argumentTypes)
     {

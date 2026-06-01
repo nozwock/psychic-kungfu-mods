@@ -5,7 +5,7 @@ namespace System.Collections.Generic
     /// <para/>
     /// https://www.interact-sw.co.uk/iangblog/2018/04/12/deconstruct-keyvaluepair
     /// </summary>
-    public static class KeyValuePairExtensions
+    internal static class KeyValuePairExtensions
     {
         public static void Deconstruct<TKey, TValue>(
             this KeyValuePair<TKey, TValue> kvp,
