@@ -11,7 +11,7 @@ public partial class Plugin : BaseUnityPlugin
     internal static Plugin Instance { get; private set; } = null!;
     internal new ManualLogSource Logger => base.Logger;
 
-    private RebindUIRegistry? rebindHandler;
+    private RebindManager? rebindHandler;
 
     private void Awake()
     {
@@ -19,9 +19,9 @@ public partial class Plugin : BaseUnityPlugin
 
         try
         {
-            Logger.LogInfo($"Setting up {nameof(RebindUIRegistry)}...");
+            Logger.LogInfo($"Setting up {nameof(RebindManager)}...");
             rebindHandler = new();
-            RebindUIRegistry.Instance = rebindHandler;
+            RebindManager.Instance = rebindHandler;
         }
         catch (Exception ex)
         {
@@ -33,6 +33,6 @@ public partial class Plugin : BaseUnityPlugin
     {
         rebindHandler?.Dispose();
         rebindHandler = null;
-        RebindUIRegistry.Instance = null;
+        RebindManager.Instance = null;
     }
 }

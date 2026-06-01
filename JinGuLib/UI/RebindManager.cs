@@ -17,12 +17,12 @@ namespace JinGuLib.UI;
 /// <summary>
 /// Type is not thread-safe. So, only call methods from the Unity thread (default plugin thread).
 /// </summary>
-public class RebindUIRegistry
+public class RebindManager
 {
     private record class RebindableAction(
         InputAction Action,
         string DisplayName,
-        RebindUIPosition Position,
+        RebindPosition Position,
         string? Filepath
     );
 
@@ -37,7 +37,7 @@ public class RebindUIRegistry
     /// langword="null"/> if initialization fails. For example, this can occur when a game update changes the target
     /// code and prevents one or more required patches from being applied successfully.
     /// </summary>
-    public static RebindUIRegistry? Instance { get; internal set; }
+    public static RebindManager? Instance { get; internal set; }
     public bool VerboseLogging { get; set; }
 
     private readonly ConditionalWeakTable<GoTable, InputAction> _goTableActions = new();
@@ -67,8 +67,8 @@ public class RebindUIRegistry
         remove => _inputManagerAwakeListeners.Remove(value);
     }
 
-    /// <inheritdoc cref="RebindUIRegistry"/>
-    internal RebindUIRegistry()
+    /// <inheritdoc cref="RebindManager"/>
+    internal RebindManager()
     {
 #if DEBUG
         VerboseLogging = true;
@@ -115,7 +115,7 @@ public class RebindUIRegistry
     }
 
     /// <summary>
-    /// <paramref name="id"/> must be unique among all registrations done via <see cref="RebindUIRegistry"/>.
+    /// <paramref name="id"/> must be unique among all registrations done via <see cref="RebindManager"/>.
     /// <para/>
     /// If <paramref name="id"/> is null, <see cref="InputAction.name"/> will be used in its place.
     /// <para/>
@@ -127,7 +127,7 @@ public class RebindUIRegistry
         string displayName,
         InputAction action,
         string? id = null,
-        RebindUIPosition? position = null,
+        RebindPosition? position = null,
         string? filepath = null
     )
     {
@@ -155,12 +155,7 @@ public class RebindUIRegistry
 
         id ??= action.name;
         Debug.Log($"Registering rebindable action: id=\"{id}\" displayName=\"{displayName}\"");
-        _actionsNameMap[id] = new(
-            action,
-            displayName,
-            position ?? RebindUIPosition.End(),
-            filepath
-        );
+        _actionsNameMap[id] = new(action, displayName, position ?? RebindPosition.End(), filepath);
 
         if (filepath != null)
         {
@@ -332,7 +327,7 @@ public class RebindUIRegistry
         {
             _controlPrefab = UnityEngine.Object.Instantiate(prefab);
             _controlPrefab.SetActive(false);
-            _controlPrefab.name = $"{nameof(RebindUIRegistry)}_Control_Prefab";
+            _controlPrefab.name = $"{nameof(RebindManager)}_Control_Prefab";
         }
 
         if (VerboseLogging)
@@ -351,20 +346,20 @@ public class RebindUIRegistry
 
             switch (rebindable.Position.Type)
             {
-                case RebindUIPosition.Kind.Index:
+                case RebindPosition.Kind.Index:
                     go.transform.SetSiblingIndex(rebindable.Position.Index);
                     break;
-                case RebindUIPosition.Kind.Before:
+                case RebindPosition.Kind.Before:
                     go.transform.SetSiblingIndex(
                         GetSiblingIndexByName(parent, rebindable.Position.Target)
                     );
                     break;
-                case RebindUIPosition.Kind.After:
+                case RebindPosition.Kind.After:
                     go.transform.SetSiblingIndex(
                         GetSiblingIndexByName(parent, rebindable.Position.Target) + 1
                     );
                     break;
-                case RebindUIPosition.Kind.End:
+                case RebindPosition.Kind.End:
                     break;
             }
 
@@ -375,7 +370,7 @@ public class RebindUIRegistry
     }
 }
 
-public readonly struct RebindUIPosition
+public readonly struct RebindPosition
 {
     public enum Kind
     {
@@ -389,20 +384,20 @@ public readonly struct RebindUIPosition
     public int Index { get; }
     public string? Target { get; }
 
-    public static RebindUIPosition AtIndex(int index) => new(Kind.Index, index);
+    public static RebindPosition AtIndex(int index) => new(Kind.Index, index);
 
     /// <summary>
     /// <paramref name="target"/> is the name of a rebinding control GameObject within the Controls tab of the Settings
     /// page. The control is expected to be a child of: "OptionWindow(Clone)/ControlPage/Scroll/View/Content/".
     /// </summary>
-    public static RebindUIPosition Before(string target) => new(Kind.Before, 0, target);
+    public static RebindPosition Before(string target) => new(Kind.Before, 0, target);
 
-    /// <inheritdoc cref="RebindUIPosition.Before(string)"/>
-    public static RebindUIPosition After(string target) => new(Kind.After, 0, target);
+    /// <inheritdoc cref="RebindPosition.Before(string)"/>
+    public static RebindPosition After(string target) => new(Kind.After, 0, target);
 
-    public static RebindUIPosition End() => new(Kind.End, 0);
+    public static RebindPosition End() => new(Kind.End, 0);
 
-    private RebindUIPosition(Kind type, int index, string? target = null)
+    private RebindPosition(Kind type, int index, string? target = null)
     {
         Type = type;
         Index = index;

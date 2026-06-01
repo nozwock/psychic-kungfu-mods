@@ -25,7 +25,7 @@ public partial class Plugin : BaseUnityPlugin
 
         AppendDBLoadLanguage();
 
-        RebindUIRegistry.Instance?.InputManagerAwake += OnInputManagerAwake;
+        RebindManager.Instance?.InputManagerAwake += OnInputManagerAwake;
 
         harmony = new(Id);
         try
@@ -79,10 +79,10 @@ public partial class Plugin : BaseUnityPlugin
                 UIUtlils.RollUpTips($"Loaded {save.m_name}");
             }
         };
-        RebindUIRegistry.Instance?.RegisterRebindableAction(
+        RebindManager.Instance?.RegisterRebindableAction(
             _keyedLocalizedText["quickload"].Cn,
             quickload,
-            position: RebindUIPosition.After("Save"),
+            position: RebindPosition.After("Save"),
             filepath: bindingsFilepath
         );
     }
