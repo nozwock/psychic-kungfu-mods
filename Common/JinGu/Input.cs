@@ -1,11 +1,13 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using Common.Extensions;
 using HarmonyLib;
 using MonoMod.RuntimeDetour;
+using Newtonsoft.Json;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.UI;
@@ -20,12 +22,17 @@ internal class InputRebindUIRegistry : IDisposable
     private record class RebindableAction(
         InputAction Action,
         string DisplayName,
-        RebindUIPosition Position
+        RebindUIPosition Position,
+        string? Filepath
     );
+
+    private sealed record class BindingOverride(int Index, string Path);
+    private sealed record class BindingOverrides(Dictionary<string, List<BindingOverride>> Bindings);
 
     private readonly ConditionalWeakTable<GoTable, InputAction> _goTableActions = new();
     private readonly Dictionary<string, RebindableAction> _actionsNameMap = [];
     private readonly HashSet<Action<InputManager>> _inputManagerAwakeListeners = [];
+    private readonly Dictionary<string, BindingOverrides> _bindingOverridesByFile = [];
     private readonly List<IDetour> _detours = [];
 
     private readonly MethodInfo _method_OptionWindow_OnAwake_SetInput;
@@ -52,8 +59,6 @@ internal class InputRebindUIRegistry : IDisposable
     /// <inheritdoc cref="InputRebindUIRegistry"/>
     public InputRebindUIRegistry()
     {
-        // TODO: Persist bindings on disk.
-        // Ref PlayerPrefs.SetString("KeySet", m_asset.SaveBindingOverridesAsJson())
         _method_OptionWindow_OnAwake_SetInput = typeof(OptionWindow).GetLocalMethod(
             $"<{nameof(OptionWindow.OnAwake)}>g__SetInput",
             [typeof(GoTable), typeof(InputAction), typeof(int)]);
@@ -79,6 +84,8 @@ internal class InputRebindUIRegistry : IDisposable
 
     public void Dispose()
     {
+        SaveBindingOverrides();
+
         foreach (var detour in _detours)
             detour.Dispose();
         _detours.Clear();
@@ -90,14 +97,82 @@ internal class InputRebindUIRegistry : IDisposable
     /// If <paramref name="id"/> is null, <see cref="InputAction.name"/> will be used in its place.
     /// <para/>
     /// </summary>
+    /// <param name="filepath">
+    /// If provided, the binding for the action is stored at this filepath.
+    /// </param>
     public void RegisterRebindableAction(
         string displayName,
         InputAction action,
         string? id = null,
-        RebindUIPosition? position = null)
+        RebindUIPosition? position = null,
+        string? filepath = null)
     {
-        Debug.Log($"Registering rebindable action: id=\"{id ?? action.name}\" displayName=\"{displayName}\"");
-        _actionsNameMap[id ?? action.name] = new(action, displayName, position ?? RebindUIPosition.End());
+        try
+        {
+            if (filepath != null
+                && !_bindingOverridesByFile.TryGetValue(filepath, out _)
+                && File.Exists(filepath))
+            {
+                var text = File.ReadAllText(filepath);
+                if (!string.IsNullOrEmpty(text))
+                {
+                    var obj = JsonConvert.DeserializeObject(text, typeof(BindingOverrides));
+                    if (obj != null)
+                        _bindingOverridesByFile[filepath] = (BindingOverrides)obj;
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Debug.LogWarning(ex);
+        }
+
+        id ??= action.name;
+        Debug.Log($"Registering rebindable action: id=\"{id}\" displayName=\"{displayName}\"");
+        _actionsNameMap[id] = new(action, displayName, position ?? RebindUIPosition.End(), filepath);
+
+        if (filepath != null)
+        {
+            if (_bindingOverridesByFile.TryGetValue(filepath, out var bindingOverrides))
+            {
+                if (bindingOverrides.Bindings.TryGetValue(id, out var bindings))
+                {
+                    foreach (var binding in bindings)
+                    {
+                        Debug.Log($"Overriding binding: id=\"{id}\" index={binding.Index} path=\"{binding.Path}\"");
+                        if (!string.IsNullOrEmpty(binding.Path))
+                            action.ApplyBindingOverride(binding.Index, binding.Path);
+                    }
+                }
+            }
+            else
+            {
+                _bindingOverridesByFile[filepath] = new([]);
+            }
+        }
+    }
+
+    private void SaveBindingOverrides()
+    {
+        foreach (var (filepath, bindingOverrides) in _bindingOverridesByFile)
+        {
+            // Populate bindings
+            foreach (var (id, rebindable) in _actionsNameMap)
+            {
+                bindingOverrides.Bindings[id] = [.. rebindable.Action.bindings
+                        .Select((b, i) => new BindingOverride(i,
+                            string.IsNullOrEmpty(b.overridePath) ? b.path : b.overridePath))];
+            }
+
+            try
+            {
+                File.WriteAllText(filepath, JsonConvert.SerializeObject(bindingOverrides));
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError(ex);
+            }
+        }
     }
 
     private void Hook_InputManager_Awake(Action<InputManager> orig, InputManager self)
