@@ -3,6 +3,7 @@
   <Import Project="Local.props" Condition="Exists('Local.props')" />
   <PropertyGroup Condition="'$(GamePath)' != ''">
     <DllDir>$(GamePath)/JinGu_Data/Managed/</DllDir>
+    <!-- gamelibs/ is from BepInExPack_JinGu -->
     <LibDir>$(GamePath)/BepInEx/gamelibs/</LibDir>
 
     <PluginDir>$(GamePath)/BepInEx/plugins/</PluginDir>
@@ -10,11 +11,13 @@
 
   <PropertyGroup>
     <TargetFramework>net472</TargetFramework>
-    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <LangVersion>14</LangVersion>
     <Nullable>enable</Nullable>
-
-    <!-- Enable ContinuousIntegrationBuild in builds to avoid embedding full paths in built DLLs -->
+    <!-- Allow access of private members at runtime. -->
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <!-- Enable ContinuousIntegrationBuild to shorten and anonymizes paths in debug symbols relative to the project
+    directory. Breakpoints will not work, however. PathMap doesn't work for linked Common sources.
+    -->
     <Deterministic>true</Deterministic>
 
     <RestoreAdditionalProjectSources>
@@ -40,6 +43,8 @@
       PrivateAssets="all" />
 
     <Reference Include="$(DllDir)/Assembly-CSharp.dll" Publicize="true" Private="false" />
+    <!-- Reference Unity assemblies and others. BaGet's UnityEngine.Module should not be referenced as those assemblies
+    are not for the Chinese Unity version. -->
     <Reference Include="$(DllDir)/*.dll"
       Exclude="$(DllDir)/Assembly-CSharp*.dll;$(DllDir)/System*.dll;$(DllDir)/mscorlib.dll;$(DllDir)/netstandard.dll"
       Private="false" />
