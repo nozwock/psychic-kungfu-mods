@@ -63,14 +63,15 @@
     <Reference Include="$(DllDir)/Assembly-CSharp.dll" Publicize="true" Private="false" />
     <!-- Reference Unity assemblies and others. BaGet's UnityEngine.Module should not be referenced as those assemblies
     are not for the Chinese Unity version. -->
+    <!-- Unity.Burst.Cecil conflicts with Mono.Cecil.Cil -->
     <Reference
       Include="$(DllDir)/*.dll"
-      Exclude="$(DllDir)/Assembly-CSharp*.dll;$(DllDir)/System*.dll;$(DllDir)/mscorlib.dll;$(DllDir)/netstandard.dll"
+      Exclude="$(DllDir)/Assembly-CSharp*.dll;$(DllDir)/System*.dll;$(DllDir)/mscorlib.dll;$(DllDir)/netstandard.dll;$(DllDir)/Unity.Burst.Cecil.dll"
       Private="false"
     />
     <Reference
       Include="$(LibDir)/*.dll"
-      Exclude="$(LibDir)/System*.dll;$(LibDir)/mscorlib.dll;$(LibDir)/netstandard.dll"
+      Exclude="$(LibDir)/System*.dll;$(LibDir)/mscorlib.dll;$(LibDir)/netstandard.dll;$(LibDir)/Unity.Burst.Cecil.dll"
       Private="false"
     />
   </ItemGroup>
