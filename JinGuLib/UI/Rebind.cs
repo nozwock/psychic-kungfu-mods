@@ -12,12 +12,12 @@ using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.UI;
 
-namespace Common.JinGu;
+namespace JinGuLib.UI;
 
 /// <summary>
 /// Type is not thread-safe. So, only call methods from the Unity thread (default plugin thread).
 /// </summary>
-internal class RebindUIRegistry : IDisposable
+public class RebindUIRegistry
 {
     private record class RebindableAction(
         InputAction Action,
@@ -32,6 +32,12 @@ internal class RebindUIRegistry : IDisposable
         Dictionary<string, List<BindingOverride>> Bindings
     );
 
+    /// <summary>
+    /// Access members using the null-conditional operator (<c>?.</c>), as <see cref="Instance"/> may be <see
+    /// langword="null"/> if initialization fails. For example, this can occur when a game update changes the target
+    /// code and prevents one or more required patches from being applied successfully.
+    /// </summary>
+    public static RebindUIRegistry? Instance { get; internal set; }
     public bool VerboseLogging { get; set; }
 
     private readonly ConditionalWeakTable<GoTable, InputAction> _goTableActions = new();
@@ -62,7 +68,7 @@ internal class RebindUIRegistry : IDisposable
     }
 
     /// <inheritdoc cref="RebindUIRegistry"/>
-    public RebindUIRegistry()
+    internal RebindUIRegistry()
     {
 #if DEBUG
         VerboseLogging = true;
@@ -99,7 +105,7 @@ internal class RebindUIRegistry : IDisposable
         ]);
     }
 
-    public void Dispose()
+    internal void Dispose()
     {
         SaveBindingOverrides();
 
@@ -369,7 +375,7 @@ internal class RebindUIRegistry : IDisposable
     }
 }
 
-internal readonly struct RebindUIPosition
+public readonly struct RebindUIPosition
 {
     public enum Kind
     {

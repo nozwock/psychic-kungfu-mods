@@ -4,4 +4,8 @@
     <AssemblyTitle>Vanilla+</AssemblyTitle>
     <Version>0.0.1</Version>
   </PropertyGroup>
+
+  <ItemGroup>
+    <Reference Include="$(PluginDir)nozwock.JinGuLib/*.dll" Private="false" />
+  </ItemGroup>
 </Project>

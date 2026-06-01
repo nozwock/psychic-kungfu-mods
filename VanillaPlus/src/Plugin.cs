@@ -4,20 +4,20 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using BepInEx;
-using Common.JinGu;
 using DBLoad;
 using HarmonyLib;
+using JinGuLib.UI;
 using UnityEngine.InputSystem;
 
 namespace VanillaPlus;
 
 [BepInAutoPlugin(id: "nozwock.VanillaPlus")]
+[BepInDependency(JinGuLib.Plugin.Id)]
 public partial class Plugin : BaseUnityPlugin
 {
     internal static Plugin Instance { get; private set; } = null!;
 
     private Harmony? harmony;
-    private RebindUIRegistry? rebindHandler;
 
     private void Awake()
     {
@@ -25,13 +25,12 @@ public partial class Plugin : BaseUnityPlugin
 
         AppendDBLoadLanguage();
 
+        RebindUIRegistry.Instance?.InputManagerAwake += OnInputManagerAwake;
+
         harmony = new(Id);
         try
         {
             harmony.PatchAll(Assembly.GetExecutingAssembly());
-
-            rebindHandler = new RebindUIRegistry();
-            rebindHandler.InputManagerAwake += OnInputManagerAwake;
         }
         catch (Exception ex)
         {
@@ -57,8 +56,6 @@ public partial class Plugin : BaseUnityPlugin
         harmony?.UnpatchSelf();
         harmony = null;
         Logger.LogInfo("Harmony patches unapplied!");
-
-        rebindHandler?.Dispose();
     }
 
     private void OnInputManagerAwake(InputManager self)
@@ -82,8 +79,7 @@ public partial class Plugin : BaseUnityPlugin
                 UIUtlils.RollUpTips($"Loaded {save.m_name}");
             }
         };
-
-        rebindHandler?.RegisterRebindableAction(
+        RebindUIRegistry.Instance?.RegisterRebindableAction(
             _keyedLocalizedText["quickload"].Cn,
             quickload,
             position: RebindUIPosition.After("Save"),
