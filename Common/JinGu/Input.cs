@@ -29,6 +29,8 @@ internal class InputRebindUIRegistry : IDisposable
     private sealed record class BindingOverride(int Index, string Path);
     private sealed record class BindingOverrides(Dictionary<string, List<BindingOverride>> Bindings);
 
+    public bool VerboseLogging { get; set; }
+
     private readonly ConditionalWeakTable<GoTable, InputAction> _goTableActions = new();
     private readonly Dictionary<string, RebindableAction> _actionsNameMap = [];
     private readonly HashSet<Action<InputManager>> _inputManagerAwakeListeners = [];
@@ -59,6 +61,10 @@ internal class InputRebindUIRegistry : IDisposable
     /// <inheritdoc cref="InputRebindUIRegistry"/>
     public InputRebindUIRegistry()
     {
+#if DEBUG
+        VerboseLogging = true;
+#endif
+
         _method_OptionWindow_OnAwake_SetInput = typeof(OptionWindow).GetLocalMethod(
             $"<{nameof(OptionWindow.OnAwake)}>g__SetInput",
             [typeof(GoTable), typeof(InputAction), typeof(int)]);
@@ -139,7 +145,8 @@ internal class InputRebindUIRegistry : IDisposable
                 {
                     foreach (var binding in bindings)
                     {
-                        Debug.Log($"Overriding binding: id=\"{id}\" index={binding.Index} path=\"{binding.Path}\"");
+                        if (VerboseLogging)
+                            Debug.Log($"Overriding binding: id=\"{id}\" index={binding.Index} path=\"{binding.Path}\"");
                         if (!string.IsNullOrEmpty(binding.Path))
                             action.ApplyBindingOverride(binding.Index, binding.Path);
                     }
@@ -239,9 +246,10 @@ internal class InputRebindUIRegistry : IDisposable
                 var childGoTable = controlsContainer.GetChild(i).GetComponent<GoTable>();
                 if (_goTableActions.TryGetValue(childGoTable, out var action))
                 {
-                    Debug.Log(
-                        "Updating custom control: " +
-                        $"id=\"{childGoTable.gameObject.name}\" goTableName=\"{childGoTable.name}\"");
+                    if (VerboseLogging)
+                        Debug.Log(
+                            "Updating custom control: " +
+                            $"id=\"{childGoTable.gameObject.name}\" goTableName=\"{childGoTable.name}\"");
                     // XXX Could just have a hardcoded copy of this SetInput local method instead of calling it via
                     // reflection.
                     _method_OptionWindow_OnAwake_SetInput.Invoke(self, [childGoTable, action, 0]);
@@ -275,10 +283,12 @@ internal class InputRebindUIRegistry : IDisposable
             _controlPrefab.name = $"{nameof(InputRebindUIRegistry)}_Control_Prefab";
         }
 
-        Debug.Log($"Pending control count: {_actionsNameMap.Count}");
+        if (VerboseLogging)
+            Debug.Log($"Pending control count: {_actionsNameMap.Count}");
         foreach (var (id, rebindable) in _actionsNameMap)
         {
-            Debug.Log($"Creating custom control GameObject: id=\"{id}\"");
+            if (VerboseLogging)
+                Debug.Log($"Creating custom control GameObject: id=\"{id}\"");
 
             var parent = prefab.transform.parent;
             var go = UnityEngine.Object.Instantiate(_controlPrefab, parent);
