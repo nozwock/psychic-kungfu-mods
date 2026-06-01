@@ -1,9 +1,11 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
 using BepInEx;
 using Common.JinGu;
+using DBLoad;
 using HarmonyLib;
 using UnityEngine.InputSystem;
 
@@ -20,6 +22,8 @@ public partial class Plugin : BaseUnityPlugin
     private void Awake()
     {
         Instance = this;
+
+        AppendDBLoadLanguage();
 
         harmony = new(Id);
         try
@@ -78,9 +82,24 @@ public partial class Plugin : BaseUnityPlugin
         };
 
         rebindHandler?.RegisterRebindableAction(
-            "Quick Load",
+            _keyedLocalizedText["quickload"].Cn,
             quickload,
             position: RebindUIPosition.After("Save"),
             filepath: bindingsFilepath);
     }
+
+    private void AppendDBLoadLanguage()
+    {
+        foreach (var (_, text) in _keyedLocalizedText)
+        {
+            // Only going to have simplified Chinese
+            var id = text.Cn.GetHashCode();
+            Language.Dic[id] = new(id, text.En, text.Cn);
+        }
+    }
+
+    private readonly Dictionary<string, (string En, string Cn)> _keyedLocalizedText = new()
+    {
+        ["quickload"] = ("Quick Load", "快速读档")
+    };
 }
