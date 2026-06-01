@@ -13,6 +13,8 @@
     <TargetFramework>net472</TargetFramework>
     <LangVersion>14</LangVersion>
     <Nullable>enable</Nullable>
+    <!-- Ignore warning about missing XML comment on accessible types and params -->
+    <NoWarn>$(NoWarn);CS1591;CS1573</NoWarn>
     <!-- Allow access of private members at runtime. -->
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <!-- Enable ContinuousIntegrationBuild to shorten and anonymizes paths in debug symbols relative to the project

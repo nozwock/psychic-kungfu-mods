@@ -3,5 +3,6 @@
     <AssemblyName>nozwock.JinGuLib</AssemblyName>
     <AssemblyTitle>JinGu Lib</AssemblyTitle>
     <Version>0.0.1</Version>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
   </PropertyGroup>
 </Project>
