@@ -17,7 +17,7 @@ public partial class Plugin : BaseUnityPlugin
     internal static Plugin Instance { get; private set; } = null!;
 
     private Harmony? harmony;
-    private InputRebindUIRegistry? rebindHandler;
+    private RebindUIRegistry? rebindHandler;
 
     private void Awake()
     {
@@ -30,7 +30,7 @@ public partial class Plugin : BaseUnityPlugin
         {
             harmony.PatchAll(Assembly.GetExecutingAssembly());
 
-            rebindHandler = new InputRebindUIRegistry();
+            rebindHandler = new RebindUIRegistry();
             rebindHandler.InputManagerAwake += OnInputManagerAwake;
         }
         catch (Exception ex)

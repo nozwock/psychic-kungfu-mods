@@ -17,7 +17,7 @@ namespace Common.JinGu;
 /// <summary>
 /// Type is not thread-safe. So, only call methods from the Unity thread (default plugin thread).
 /// </summary>
-internal class InputRebindUIRegistry : IDisposable
+internal class RebindUIRegistry : IDisposable
 {
     private record class RebindableAction(
         InputAction Action,
@@ -61,8 +61,8 @@ internal class InputRebindUIRegistry : IDisposable
         remove => _inputManagerAwakeListeners.Remove(value);
     }
 
-    /// <inheritdoc cref="InputRebindUIRegistry"/>
-    public InputRebindUIRegistry()
+    /// <inheritdoc cref="RebindUIRegistry"/>
+    public RebindUIRegistry()
     {
 #if DEBUG
         VerboseLogging = true;
@@ -109,7 +109,7 @@ internal class InputRebindUIRegistry : IDisposable
     }
 
     /// <summary>
-    /// <paramref name="id"/> must be unique among all registrations done via <see cref="InputRebindUIRegistry"/>.
+    /// <paramref name="id"/> must be unique among all registrations done via <see cref="RebindUIRegistry"/>.
     /// <para/>
     /// If <paramref name="id"/> is null, <see cref="InputAction.name"/> will be used in its place.
     /// <para/>
@@ -326,7 +326,7 @@ internal class InputRebindUIRegistry : IDisposable
         {
             _controlPrefab = UnityEngine.Object.Instantiate(prefab);
             _controlPrefab.SetActive(false);
-            _controlPrefab.name = $"{nameof(InputRebindUIRegistry)}_Control_Prefab";
+            _controlPrefab.name = $"{nameof(RebindUIRegistry)}_Control_Prefab";
         }
 
         if (VerboseLogging)
