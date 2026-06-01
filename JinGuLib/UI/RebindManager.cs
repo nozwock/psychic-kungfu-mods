@@ -42,30 +42,12 @@ public class RebindManager
 
     private readonly ConditionalWeakTable<GoTable, InputAction> _goTableActions = new();
     private readonly Dictionary<string, RebindableAction> _actionsNameMap = [];
-    private readonly HashSet<Action<InputManager>> _inputManagerAwakeListeners = [];
     private readonly Dictionary<string, BindingOverrides> _bindingOverridesByFile = [];
     private readonly List<IDetour> _detours = [];
 
     private readonly MethodInfo _method_OptionWindow_OnAwake_SetInput;
     private FieldInfo? _field_OptionWindow_OnAwake_goTable;
     private GameObject? _controlPrefab;
-
-    /// <summary>
-    /// Use this event to attach or register <see cref="InputAction"/> instances to the <see cref="InputManager"/>'s
-    /// <see cref="InputActionMap"/>s.
-    /// <para/>
-    /// Besides maybe accessing <see cref="InputManager.Instance"/> on Start, this is the only safe point to modify
-    /// input setup. Accessing <see cref="InputManager.Instance"/> directly may occur before internal state (e.g. <see
-    /// cref="InputManager.m_main"/>) and action maps are fully initialized, leading to errors.
-    /// <para/>
-    /// This event is invoked only once when the <see cref="InputManager"/> has completed initialization since it's a
-    /// singleton.
-    /// </summary>
-    public event Action<InputManager> InputManagerAwake
-    {
-        add => _inputManagerAwakeListeners.Add(value);
-        remove => _inputManagerAwakeListeners.Remove(value);
-    }
 
     /// <inheritdoc cref="RebindManager"/>
     internal RebindManager()
@@ -91,10 +73,6 @@ public class RebindManager
         // there's no way to skip Harmony patches from being included in PatchAll(Assembly.GetExecutingAssembly()).
         _detours.AddRange([
             new Hook(
-                typeof(InputManager).GetMethod(nameof(InputManager.Awake), instanceBindingAttr),
-                Hook_InputManager_Awake
-            ),
-            new Hook(
                 typeof(OptionWindow).GetMethod(nameof(OptionWindow.OnAwake), instanceBindingAttr),
                 Hook_OptionWindow_OnAwake
             ),
@@ -119,6 +97,10 @@ public class RebindManager
     /// <para/>
     /// If <paramref name="id"/> is null, <see cref="InputAction.name"/> will be used in its place.
     /// <para/>
+    /// Tip: You may register <see cref="InputAction"/> instances to the <see cref="InputManager"/>'s <see
+    /// cref="InputActionMap"/>s in your plugin's <c>Start</c> method (not <c>Awake</c> or earlier).  When doing so,
+    /// temporarily disable <see cref="InputManager.m_asset"/> before adding them, then re-enable it afterward, since
+    /// new <see cref="InputAction"/> instances cannot be added while any actions are enabled.
     /// </summary>
     /// <param name="filepath">
     /// If provided, the binding for the action is stored at this filepath.
@@ -226,27 +208,6 @@ public class RebindManager
                 Debug.LogError(ex);
             }
         }
-    }
-
-    private void Hook_InputManager_Awake(Action<InputManager> orig, InputManager self)
-    {
-        orig(self);
-
-        self.m_asset.Disable(); // To allow adding to InputManager's InputActionMap
-        foreach (var listener in _inputManagerAwakeListeners)
-        {
-            try
-            {
-                listener(self);
-            }
-            catch (Exception ex)
-            {
-                Debug.Log(ex);
-            }
-        }
-        self.m_asset.Enable();
-
-        _inputManagerAwakeListeners.Clear();
     }
 
     private void Hook_OptionWindow_OnAwake(Action<OptionWindow> orig, OptionWindow self)

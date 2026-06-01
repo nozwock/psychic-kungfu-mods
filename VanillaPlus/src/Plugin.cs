@@ -25,8 +25,6 @@ public partial class Plugin : BaseUnityPlugin
 
         AppendDBLoadLanguage();
 
-        RebindManager.Instance?.InputManagerAwake += OnInputManagerAwake;
-
         harmony = new(Id);
         try
         {
@@ -51,6 +49,11 @@ public partial class Plugin : BaseUnityPlugin
         }
     }
 
+    private void Start()
+    {
+        InitActions();
+    }
+
     private void OnDestroy()
     {
         harmony?.UnpatchSelf();
@@ -58,14 +61,15 @@ public partial class Plugin : BaseUnityPlugin
         Logger.LogInfo("Harmony patches unapplied!");
     }
 
-    private void OnInputManagerAwake(InputManager self)
+    private void InitActions()
     {
         var bindingsFilepath = Path.Combine(
             Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location),
             "bindings.json"
         );
 
-        var quickload = self.m_main.AddAction(
+        InputManager.Instance.m_asset.Disable();
+        var quickload = InputManager.Instance.m_main.AddAction(
             $"{Id}.QuickLoad",
             type: InputActionType.Button,
             binding: "<Keyboard>/f9"
@@ -79,6 +83,8 @@ public partial class Plugin : BaseUnityPlugin
                 UIUtlils.RollUpTips($"Loaded {save.m_name}");
             }
         };
+        InputManager.Instance.m_asset.Enable();
+
         RebindManager.Instance?.RegisterRebindableAction(
             _keyedLocalizedText["quickload"].Cn,
             quickload,
