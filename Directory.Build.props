@@ -62,8 +62,9 @@
     <ItemGroup Condition="'$(Configuration)' == 'Debug'">
       <FilesToDelete Include="$(PublishDir)*.deps.json;" />
     </ItemGroup>
+    <!-- .pdb is not excluded, so make sure ContinuousIntegrationBuild is set when building for distribution. -->
     <ItemGroup Condition="'$(Configuration)' == 'Release'">
-      <FilesToDelete Include="$(PublishDir)*.pdb;$(PublishDir)*.deps.json;" />
+      <FilesToDelete Include="$(PublishDir)*.deps.json;" />
     </ItemGroup>
     <Delete Files="@(FilesToDelete)">
       <Output TaskParameter="DeletedFiles" ItemName="FilesDeleted" />
