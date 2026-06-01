@@ -48,9 +48,9 @@ internal class InputRebindUIRegistry : IDisposable
     /// Use this event to attach or register <see cref="InputAction"/> instances to the <see cref="InputManager"/>'s
     /// <see cref="InputActionMap"/>s.
     /// <para/>
-    /// This is the only safe point to modify input setup. Accessing <see cref="InputManager.Instance"/> directly may
-    /// occur before internal state (e.g. <see cref="InputManager.m_main"/>) and action maps are fully initialized,
-    /// leading to errors.
+    /// Besides maybe accessing <see cref="InputManager.Instance"/> on Start, this is the only safe point to modify
+    /// input setup. Accessing <see cref="InputManager.Instance"/> directly may occur before internal state (e.g. <see
+    /// cref="InputManager.m_main"/>) and action maps are fully initialized, leading to errors.
     /// <para/>
     /// This event is invoked only once when the <see cref="InputManager"/> has completed initialization since it's a
     /// singleton.
