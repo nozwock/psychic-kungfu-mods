@@ -161,14 +161,28 @@ internal class InputRebindUIRegistry : IDisposable
 
     private void SaveBindingOverrides()
     {
+        var actionsNameMapByFile = _actionsNameMap
+            .Where(pair => pair.Value.Filepath != null)
+            .GroupBy(pair => pair.Value.Filepath)
+            .ToDictionary(
+                group => group.Key,
+                group => group.ToDictionary(pair => pair.Key, pair => pair.Value));
+
         foreach (var (filepath, bindingOverrides) in _bindingOverridesByFile)
         {
+            if (!actionsNameMapByFile.TryGetValue(filepath, out var actionsNameMap))
+            {
+                Debug.LogWarning(
+                    $"Something went wrong with bookkeeping. This shouldn't be reachable: filepath={filepath}");
+                continue;
+            }
+
             // Populate bindings
-            foreach (var (id, rebindable) in _actionsNameMap)
+            foreach (var (id, rebindable) in actionsNameMap)
             {
                 bindingOverrides.Bindings[id] = [.. rebindable.Action.bindings
-                        .Select((b, i) => new BindingOverride(i,
-                            string.IsNullOrEmpty(b.overridePath) ? b.path : b.overridePath))];
+                            .Select((b, i) => new BindingOverride(i,
+                                string.IsNullOrEmpty(b.overridePath) ? b.path : b.overridePath))];
             }
 
             try
