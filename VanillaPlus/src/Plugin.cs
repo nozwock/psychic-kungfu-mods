@@ -1,7 +1,9 @@
 ﻿using System;
+using System.IO;
 using System.Linq;
 using System.Reflection;
 using BepInEx;
+using Common.JinGu;
 using HarmonyLib;
 using UnityEngine.InputSystem;
 
@@ -13,17 +15,19 @@ public partial class Plugin : BaseUnityPlugin
     internal static Plugin Instance { get; private set; } = null!;
 
     private Harmony? harmony;
+    private InputRebindUIRegistry? rebindHandler;
 
     private void Awake()
     {
         Instance = this;
 
-        InitActions();
-
         harmony = new(Id);
         try
         {
             harmony.PatchAll(Assembly.GetExecutingAssembly());
+
+            rebindHandler = new InputRebindUIRegistry();
+            rebindHandler.InputManagerAwake += OnInputManagerAwake;
         }
         catch (Exception ex)
         {
@@ -48,19 +52,23 @@ public partial class Plugin : BaseUnityPlugin
     {
         harmony?.UnpatchSelf();
         harmony = null;
-
         Logger.LogInfo("Harmony patches unapplied!");
+
+        rebindHandler?.Dispose();
     }
 
-    private void InitActions()
+    private void OnInputManagerAwake(InputManager self)
     {
-        var quickload = InputManager.Instance.m_main.AddAction(
+        var bindingsFilepath = Path.Combine(
+            Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location),
+            "bindings.json");
+
+        var quickload = self.m_main.AddAction(
             $"{Id}.QuickLoad",
             type: InputActionType.Button,
             binding: "<Keyboard>/f9");
         quickload.performed += ctx =>
         {
-            // TODO: Add rebinding support
             var save = SaveManager.Instance.GetSaves(SaveEnum.快速).FirstOrDefault();
             if (save != null)
             {
@@ -68,5 +76,11 @@ public partial class Plugin : BaseUnityPlugin
                 UIUtlils.RollUpTips($"Loaded {save.m_name}");
             }
         };
+
+        rebindHandler?.RegisterRebindableAction(
+            "Quick Load",
+            quickload,
+            position: RebindUIPosition.After("Save"),
+            filepath: bindingsFilepath);
     }
 }
