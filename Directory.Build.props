@@ -39,6 +39,12 @@
     <!-- AutoPlugin Version 2.1 Requires SDK 10+ -->
     <PackageReference Include="Hamunii.BepInEx.AutoPlugin" Version="2.1" PrivateAssets="all" />
 
+    <!-- Format on build -->
+    <PackageReference Include="CSharpier.MsBuild" Version="1.2.6">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
+    </PackageReference>
+
     <PackageReference Include="BepInEx.AssemblyPublicizer.MSBuild" Version="0.4.2"
       PrivateAssets="all" />
 
