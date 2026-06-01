@@ -11,14 +11,14 @@ public partial class Plugin : BaseUnityPlugin
     internal static Plugin Instance { get; private set; } = null!;
     internal new ManualLogSource Logger => base.Logger;
 
-    private RebindManager? rebindHandler;
+    private RebindManager? _rebindHandler;
 
     private void Awake()
     {
         Instance = this;
 
         Logger.LogInfo($"Setting up {typeof(RebindManager).FullName}...");
-        rebindHandler = new();
+        _rebindHandler = new();
     }
 
     private void OnApplicationQuit() => Destroy();
@@ -27,7 +27,7 @@ public partial class Plugin : BaseUnityPlugin
 
     private void Destroy()
     {
-        rebindHandler?.Dispose();
-        rebindHandler = null;
+        _rebindHandler?.Dispose();
+        _rebindHandler = null;
     }
 }
