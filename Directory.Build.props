@@ -39,6 +39,13 @@
     <!-- AutoPlugin Version 2.1 Requires SDK 10+ -->
     <PackageReference Include="Hamunii.BepInEx.AutoPlugin" Version="2.1" PrivateAssets="all" />
 
+    <!-- Allows using newer Language features in projects targeting older runtimes.
+     This doesn't add any support for features that need types on runtime such as KeyValuePair deconstructing, etc. -->
+    <PackageReference Include="PolySharp" Version="1.16.0">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+
     <!-- Format on build -->
     <PackageReference Include="CSharpier.MsBuild" Version="1.2.6">
       <PrivateAssets>all</PrivateAssets>
