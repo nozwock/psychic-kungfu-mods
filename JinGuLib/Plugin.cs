@@ -19,7 +19,7 @@ public partial class Plugin : BaseUnityPlugin
 
         try
         {
-            Logger.LogInfo($"Setting up {nameof(RebindManager)}...");
+            Logger.LogInfo($"Setting up {typeof(RebindManager).FullName}...");
             rebindHandler = new();
             RebindManager.Instance = rebindHandler;
         }

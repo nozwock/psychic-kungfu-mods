@@ -183,6 +183,7 @@ public class RebindManager
 
     private void SaveBindingOverrides()
     {
+        Debug.Log("Saving bindings for custom InputActions...");
         var actionsNameMapByFile = _actionsNameMap
             .Where(pair => pair.Value.Filepath != null)
             .GroupBy(pair => pair.Value.Filepath)
