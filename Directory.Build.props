@@ -34,10 +34,10 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="BepInEx.Analyzers" Version="1.*" PrivateAssets="all" />
-    <PackageReference Include="BepInEx.Core" Version="5.*" PrivateAssets="all" />
-    <!-- AutoPlugin Version 2.1 Requires SDK 10+ -->
-    <PackageReference Include="Hamunii.BepInEx.AutoPlugin" Version="2.1" PrivateAssets="all" />
+    <PackageReference Include="BepInEx.Analyzers" Version="1.0.8" PrivateAssets="all" />
+    <PackageReference Include="BepInEx.Core" Version="5.4.21" PrivateAssets="all" />
+    <!-- AutoPlugin 2.1.0 Requires SDK 10+. Use 2.0.1 if that's not ideal. -->
+    <PackageReference Include="Hamunii.BepInEx.AutoPlugin" Version="2.1.0" PrivateAssets="all" />
 
     <!-- Allows using newer Language features in projects targeting older runtimes.
      This doesn't add any support for features that need types on runtime such as KeyValuePair deconstructing, etc. -->
