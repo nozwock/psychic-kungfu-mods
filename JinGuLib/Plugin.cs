@@ -29,7 +29,11 @@ public partial class Plugin : BaseUnityPlugin
         }
     }
 
-    private void OnDestroy()
+    private void OnApplicationQuit() => Destroy();
+
+    private void OnDestroy() => Destroy();
+
+    private void Destroy()
     {
         rebindHandler?.Dispose();
         rebindHandler = null;
