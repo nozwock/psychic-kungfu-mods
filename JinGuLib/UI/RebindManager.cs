@@ -32,12 +32,13 @@ public class RebindManager
         Dictionary<string, List<BindingOverride>> Bindings
     );
 
-    /// <summary>
-    /// Access members using the null-conditional operator (<c>?.</c>), as <see cref="Instance"/> may be <see
-    /// langword="null"/> if initialization fails. For example, this can occur when a game update changes the target
-    /// code and prevents one or more required patches from being applied successfully.
-    /// </summary>
-    public static RebindManager? Instance { get; internal set; }
+    private static RebindManager? _instance;
+    public static RebindManager Instance =>
+        _instance
+        ?? throw new NullReferenceException(
+            $"{nameof(RebindManager)} isn't initialized yet. "
+                + $"Are you sure that {Plugin.Id} is being loaded before your mod?"
+        );
     public bool VerboseLogging { get; set; }
 
     private readonly ConditionalWeakTable<GoTable, InputAction> _goTableActions = new();
@@ -45,46 +46,34 @@ public class RebindManager
     private readonly Dictionary<string, BindingOverrides> _bindingOverridesByFile = [];
     private readonly List<IDetour> _detours = [];
 
-    private readonly MethodInfo _method_OptionWindow_OnAwake_SetInput;
+    private MethodInfo? _method_OptionWindow_OnAwake_SetInput;
     private FieldInfo? _field_OptionWindow_OnAwake_goTable;
     private GameObject? _controlPrefab;
 
     /// <inheritdoc cref="RebindManager"/>
     internal RebindManager()
     {
+        _instance = this;
+
 #if DEBUG
         VerboseLogging = true;
 #endif
 
-        _method_OptionWindow_OnAwake_SetInput = typeof(OptionWindow).GetLocalMethod(
-            $"<{nameof(OptionWindow.OnAwake)}>g__SetInput",
-            [typeof(GoTable), typeof(InputAction), typeof(int)]
-        );
-        var method_OptionWindow_OnAwake_SetControl = typeof(OptionWindow).GetLocalMethod(
-            $"<{nameof(OptionWindow.OnAwake)}>g__SetControl",
-            []
-        );
-
-        // Default doesn't include NonPublic I think
-        var instanceBindingAttr =
-            BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic;
-
-        // MonoMod is used instead of Harmony since we want to manage the hooks ourselves here in the class instance and
-        // there's no way to skip Harmony patches from being included in PatchAll(Assembly.GetExecutingAssembly()).
-        _detours.AddRange([
-            new Hook(
-                typeof(OptionWindow).GetMethod(nameof(OptionWindow.OnAwake), instanceBindingAttr),
-                Hook_OptionWindow_OnAwake
-            ),
-            new Hook(
-                method_OptionWindow_OnAwake_SetControl,
-                Hook_OptionWindow_OnAwake_CreateControl
-            ),
-        ]);
+        // This allows at least loading of bindings from disk to work even if the UI Hooks failed
+        try
+        {
+            ApplyUIManagingHooks();
+        }
+        catch (Exception ex)
+        {
+            Debug.LogError($"Failed to inject custom rebind options in Settings UI: {ex}");
+        }
     }
 
     internal void Dispose()
     {
+        _instance = null;
+
         SaveBindingOverrides();
 
         foreach (var detour in _detours)
@@ -210,6 +199,35 @@ public class RebindManager
         }
     }
 
+    private void ApplyUIManagingHooks()
+    {
+        _method_OptionWindow_OnAwake_SetInput = typeof(OptionWindow).GetLocalMethod(
+            $"<{nameof(OptionWindow.OnAwake)}>g__SetInput",
+            [typeof(GoTable), typeof(InputAction), typeof(int)]
+        );
+        var method_OptionWindow_OnAwake_SetControl = typeof(OptionWindow).GetLocalMethod(
+            $"<{nameof(OptionWindow.OnAwake)}>g__SetControl",
+            []
+        );
+
+        // Default doesn't include NonPublic I think
+        var instanceBindingAttr =
+            BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic;
+
+        // MonoMod is used instead of Harmony since we want to manage the hooks ourselves here in the class instance and
+        // there's no way to skip Harmony patches from being included in PatchAll(Assembly.GetExecutingAssembly()).
+        _detours.AddRange([
+            new Hook(
+                typeof(OptionWindow).GetMethod(nameof(OptionWindow.OnAwake), instanceBindingAttr),
+                Hook_OptionWindow_OnAwake
+            ),
+            new Hook(
+                method_OptionWindow_OnAwake_SetControl,
+                Hook_OptionWindow_OnAwake_CreateControl
+            ),
+        ]);
+    }
+
     private void Hook_OptionWindow_OnAwake(Action<OptionWindow> orig, OptionWindow self)
     {
         try
@@ -260,7 +278,7 @@ public class RebindManager
                         );
                     // XXX Could just have a hardcoded copy of this SetInput local method instead of calling it via
                     // reflection.
-                    _method_OptionWindow_OnAwake_SetInput.Invoke(self, [childGoTable, action, 0]);
+                    _method_OptionWindow_OnAwake_SetInput!.Invoke(self, [childGoTable, action, 0]);
                 }
             }
         }

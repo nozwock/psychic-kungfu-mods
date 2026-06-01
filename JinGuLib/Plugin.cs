@@ -17,16 +17,8 @@ public partial class Plugin : BaseUnityPlugin
     {
         Instance = this;
 
-        try
-        {
-            Logger.LogInfo($"Setting up {typeof(RebindManager).FullName}...");
-            rebindHandler = new();
-            RebindManager.Instance = rebindHandler;
-        }
-        catch (Exception ex)
-        {
-            Logger.LogError(ex);
-        }
+        Logger.LogInfo($"Setting up {typeof(RebindManager).FullName}...");
+        rebindHandler = new();
     }
 
     private void OnApplicationQuit() => Destroy();
@@ -37,6 +29,5 @@ public partial class Plugin : BaseUnityPlugin
     {
         rebindHandler?.Dispose();
         rebindHandler = null;
-        RebindManager.Instance = null;
     }
 }
