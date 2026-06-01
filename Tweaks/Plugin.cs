@@ -97,38 +97,56 @@ public partial class Plugin : BaseUnityPlugin
                     if (cmd == "maxskill")
                     {
                         Logger.LogInfo("Maxing out All Martial Skills");
-                        defaultContext?.Post(_ =>
-                        {
-                            foreach (var kvp in WuXue.Dic)
+                        defaultContext?.Post(
+                            _ =>
                             {
-                                var id = kvp.Key;
-                                var data = kvp.Value;
-                                var maxExp = data.m_lvMax * data.m_exp;
-                                if (SaveManager.Instance.SaveData.m_wuXueExpDic.TryGetValue(id, out var exp)
-                                    && exp < maxExp)
+                                foreach (var kvp in WuXue.Dic)
                                 {
-                                    SaveManager.Instance.SaveData.AddWuXueExp(id, maxExp, true);
+                                    var id = kvp.Key;
+                                    var data = kvp.Value;
+                                    var maxExp = data.m_lvMax * data.m_exp;
+                                    if (
+                                        SaveManager.Instance.SaveData.m_wuXueExpDic.TryGetValue(
+                                            id,
+                                            out var exp
+                                        )
+                                        && exp < maxExp
+                                    )
+                                    {
+                                        SaveManager.Instance.SaveData.AddWuXueExp(id, maxExp, true);
+                                    }
                                 }
-                            }
-                        }, null);
+                            },
+                            null
+                        );
                     }
                     else if (cmd == "lover")
                     {
                         if (!(splits.Length > 1 && int.TryParse(splits[1], out var id)))
                             return;
 
-                        defaultContext?.Post(_ =>
-                        {
-                            if (SaveManager.Instance.SaveData.NpcDic.TryGetValue(id, out var npc))
+                        defaultContext?.Post(
+                            _ =>
                             {
-                                Logger.LogInfo($"Assigning NPC \"{npc.Name}\" ({id}) to Lover (Crimson Veil) camp");
-                                npc.m_camp = NpcCamp.情缘;
-                            }
-                            else
-                            {
-                                Logger.LogInfo($"NPC {id} not found");
-                            }
-                        }, null);
+                                if (
+                                    SaveManager.Instance.SaveData.NpcDic.TryGetValue(
+                                        id,
+                                        out var npc
+                                    )
+                                )
+                                {
+                                    Logger.LogInfo(
+                                        $"Assigning NPC \"{npc.Name}\" ({id}) to Lover (Crimson Veil) camp"
+                                    );
+                                    npc.m_camp = NpcCamp.情缘;
+                                }
+                                else
+                                {
+                                    Logger.LogInfo($"NPC {id} not found");
+                                }
+                            },
+                            null
+                        );
                     }
                     else if (int.TryParse(splits[0], out var id))
                     {
@@ -139,10 +157,13 @@ public partial class Plugin : BaseUnityPlugin
                         if (Item.Get(id) != null)
                         {
                             Logger.LogInfo($"Added Item: id={id}, count={count}");
-                            defaultContext?.Post(_ =>
-                            {
-                                SaveManager.Instance.SaveData.AddItems([id], [count]);
-                            }, null);
+                            defaultContext?.Post(
+                                _ =>
+                                {
+                                    SaveManager.Instance.SaveData.AddItems([id], [count]);
+                                },
+                                null
+                            );
                         }
                         else
                         {
@@ -186,14 +207,18 @@ public partial class Plugin : BaseUnityPlugin
 
         [HarmonyPostfix]
         [HarmonyPatch(typeof(ItemTips), nameof(ItemTips.OnOpen))]
-        private static void ItemTips_OnOpen_ShowItemId_Postfix(ItemTips __instance, object[] variables)
+        private static void ItemTips_OnOpen_ShowItemId_Postfix(
+            ItemTips __instance,
+            object[] variables
+        )
         {
             var self = __instance;
             var descText = self.m_goTable.GetNode<Text>("Desc_Text");
             if (!descText.text.StartsWith("ID: "))
             {
                 var id = (int)variables[0];
-                descText.text = $@"ID: {id}
+                descText.text =
+                    $@"ID: {id}
 Owned: {SaveManager.Instance.SaveData.m_itemDic.GetValueSafe(id)}
 {descText.text}";
 
@@ -240,9 +265,13 @@ Owned: {SaveManager.Instance.SaveData.m_itemDic.GetValueSafe(id)}
                     descText.text = $"[ID: {npcId}] {descText.text}";
 
                     var rect = goTable.GetNode<RectTransform>("Desc_RectTransform");
-                    rect.sizeDelta = new(rect.sizeDelta.x, Mathf.Max(200f, descText.preferredHeight + 67f));
+                    rect.sizeDelta = new(
+                        rect.sizeDelta.x,
+                        Mathf.Max(200f, descText.preferredHeight + 67f)
+                    );
                     LayoutRebuilder.ForceRebuildLayoutImmediate(
-                        goTable.GetNode<RectTransform>("Content_RectTransform"));
+                        goTable.GetNode<RectTransform>("Content_RectTransform")
+                    );
                 }
             }
         }

@@ -27,7 +27,10 @@ internal class InputRebindUIRegistry : IDisposable
     );
 
     private sealed record class BindingOverride(int Index, string Path);
-    private sealed record class BindingOverrides(Dictionary<string, List<BindingOverride>> Bindings);
+
+    private sealed record class BindingOverrides(
+        Dictionary<string, List<BindingOverride>> Bindings
+    );
 
     public bool VerboseLogging { get; set; }
 
@@ -67,24 +70,32 @@ internal class InputRebindUIRegistry : IDisposable
 
         _method_OptionWindow_OnAwake_SetInput = typeof(OptionWindow).GetLocalMethod(
             $"<{nameof(OptionWindow.OnAwake)}>g__SetInput",
-            [typeof(GoTable), typeof(InputAction), typeof(int)]);
+            [typeof(GoTable), typeof(InputAction), typeof(int)]
+        );
         var method_OptionWindow_OnAwake_SetControl = typeof(OptionWindow).GetLocalMethod(
             $"<{nameof(OptionWindow.OnAwake)}>g__SetControl",
-            []);
+            []
+        );
 
         // Default doesn't include NonPublic I think
-        var instanceBindingAttr = BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic;
+        var instanceBindingAttr =
+            BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic;
 
         // MonoMod is used instead of Harmony since we want to manage the hooks ourselves here in the class instance and
         // there's no way to skip Harmony patches from being included in PatchAll(Assembly.GetExecutingAssembly()).
         _detours.AddRange([
             new Hook(
                 typeof(InputManager).GetMethod(nameof(InputManager.Awake), instanceBindingAttr),
-                Hook_InputManager_Awake),
+                Hook_InputManager_Awake
+            ),
             new Hook(
                 typeof(OptionWindow).GetMethod(nameof(OptionWindow.OnAwake), instanceBindingAttr),
-                Hook_OptionWindow_OnAwake),
-            new Hook(method_OptionWindow_OnAwake_SetControl, Hook_OptionWindow_OnAwake_CreateControl)
+                Hook_OptionWindow_OnAwake
+            ),
+            new Hook(
+                method_OptionWindow_OnAwake_SetControl,
+                Hook_OptionWindow_OnAwake_CreateControl
+            ),
         ]);
     }
 
@@ -98,7 +109,7 @@ internal class InputRebindUIRegistry : IDisposable
     }
 
     /// <summary>
-    /// <paramref name="id"/> must be unique among all registrations done via <see cref="InputRebindUIRegistry"/>. 
+    /// <paramref name="id"/> must be unique among all registrations done via <see cref="InputRebindUIRegistry"/>.
     /// <para/>
     /// If <paramref name="id"/> is null, <see cref="InputAction.name"/> will be used in its place.
     /// <para/>
@@ -111,13 +122,16 @@ internal class InputRebindUIRegistry : IDisposable
         InputAction action,
         string? id = null,
         RebindUIPosition? position = null,
-        string? filepath = null)
+        string? filepath = null
+    )
     {
         try
         {
-            if (filepath != null
+            if (
+                filepath != null
                 && !_bindingOverridesByFile.TryGetValue(filepath, out _)
-                && File.Exists(filepath))
+                && File.Exists(filepath)
+            )
             {
                 var text = File.ReadAllText(filepath);
                 if (!string.IsNullOrEmpty(text))
@@ -135,7 +149,12 @@ internal class InputRebindUIRegistry : IDisposable
 
         id ??= action.name;
         Debug.Log($"Registering rebindable action: id=\"{id}\" displayName=\"{displayName}\"");
-        _actionsNameMap[id] = new(action, displayName, position ?? RebindUIPosition.End(), filepath);
+        _actionsNameMap[id] = new(
+            action,
+            displayName,
+            position ?? RebindUIPosition.End(),
+            filepath
+        );
 
         if (filepath != null)
         {
@@ -146,7 +165,9 @@ internal class InputRebindUIRegistry : IDisposable
                     foreach (var binding in bindings)
                     {
                         if (VerboseLogging)
-                            Debug.Log($"Overriding binding: id=\"{id}\" index={binding.Index} path=\"{binding.Path}\"");
+                            Debug.Log(
+                                $"Overriding binding: id=\"{id}\" index={binding.Index} path=\"{binding.Path}\""
+                            );
                         if (!string.IsNullOrEmpty(binding.Path))
                             action.ApplyBindingOverride(binding.Index, binding.Path);
                     }
@@ -166,23 +187,32 @@ internal class InputRebindUIRegistry : IDisposable
             .GroupBy(pair => pair.Value.Filepath)
             .ToDictionary(
                 group => group.Key,
-                group => group.ToDictionary(pair => pair.Key, pair => pair.Value));
+                group => group.ToDictionary(pair => pair.Key, pair => pair.Value)
+            );
 
         foreach (var (filepath, bindingOverrides) in _bindingOverridesByFile)
         {
             if (!actionsNameMapByFile.TryGetValue(filepath, out var actionsNameMap))
             {
                 Debug.LogWarning(
-                    $"Something went wrong with bookkeeping. This shouldn't be reachable: filepath={filepath}");
+                    $"Something went wrong with bookkeeping. This shouldn't be reachable: filepath={filepath}"
+                );
                 continue;
             }
 
             // Populate bindings
             foreach (var (id, rebindable) in actionsNameMap)
             {
-                bindingOverrides.Bindings[id] = [.. rebindable.Action.bindings
-                            .Select((b, i) => new BindingOverride(i,
-                                string.IsNullOrEmpty(b.overridePath) ? b.path : b.overridePath))];
+                bindingOverrides.Bindings[id] =
+                [
+                    .. rebindable.Action.bindings.Select(
+                        (b, i) =>
+                            new BindingOverride(
+                                i,
+                                string.IsNullOrEmpty(b.overridePath) ? b.path : b.overridePath
+                            )
+                    ),
+                ];
             }
 
             try
@@ -223,8 +253,8 @@ internal class InputRebindUIRegistry : IDisposable
         {
             var goTable = self.transform.GetComponent<GoTable>();
             var controlPageGoTable = goTable.GetNode<GoTable>("ControlPage_GoTable");
-            var controlGoTable = controlPageGoTable.m_list
-                .Select(it => it.obj)
+            var controlGoTable = controlPageGoTable
+                .m_list.Select(it => it.obj)
                 .OfType<GoTable>()
                 .First();
 
@@ -249,8 +279,8 @@ internal class InputRebindUIRegistry : IDisposable
 
             var goTable = (GoTable)_field_OptionWindow_OnAwake_goTable.GetValue(self);
             var controlPageGoTable = goTable.GetNode<GoTable>("ControlPage_GoTable");
-            var controlGoTable = controlPageGoTable.m_list
-                .Select(it => it.obj)
+            var controlGoTable = controlPageGoTable
+                .m_list.Select(it => it.obj)
                 .OfType<GoTable>()
                 .First();
 
@@ -262,8 +292,9 @@ internal class InputRebindUIRegistry : IDisposable
                 {
                     if (VerboseLogging)
                         Debug.Log(
-                            "Updating custom control: " +
-                            $"id=\"{childGoTable.gameObject.name}\" goTableName=\"{childGoTable.name}\"");
+                            "Updating custom control: "
+                                + $"id=\"{childGoTable.gameObject.name}\" goTableName=\"{childGoTable.name}\""
+                        );
                     // XXX Could just have a hardcoded copy of this SetInput local method instead of calling it via
                     // reflection.
                     _method_OptionWindow_OnAwake_SetInput.Invoke(self, [childGoTable, action, 0]);
@@ -280,7 +311,8 @@ internal class InputRebindUIRegistry : IDisposable
     {
         static int GetSiblingIndexByName(Transform parent, string? childGoName)
         {
-            if (childGoName == null) return parent.childCount;
+            if (childGoName == null)
+                return parent.childCount;
             for (var i = parent.childCount - 1; i >= 0; i--)
             {
                 var child = parent.GetChild(i);
@@ -317,10 +349,14 @@ internal class InputRebindUIRegistry : IDisposable
                     go.transform.SetSiblingIndex(rebindable.Position.Index);
                     break;
                 case RebindUIPosition.Kind.Before:
-                    go.transform.SetSiblingIndex(GetSiblingIndexByName(parent, rebindable.Position.Target));
+                    go.transform.SetSiblingIndex(
+                        GetSiblingIndexByName(parent, rebindable.Position.Target)
+                    );
                     break;
                 case RebindUIPosition.Kind.After:
-                    go.transform.SetSiblingIndex(GetSiblingIndexByName(parent, rebindable.Position.Target) + 1);
+                    go.transform.SetSiblingIndex(
+                        GetSiblingIndexByName(parent, rebindable.Position.Target) + 1
+                    );
                     break;
                 case RebindUIPosition.Kind.End:
                     break;
@@ -340,7 +376,7 @@ internal readonly struct RebindUIPosition
         End,
         Index,
         Before,
-        After
+        After,
     }
 
     public Kind Type { get; }
@@ -348,13 +384,16 @@ internal readonly struct RebindUIPosition
     public string? Target { get; }
 
     public static RebindUIPosition AtIndex(int index) => new(Kind.Index, index);
+
     /// <summary>
     /// <paramref name="target"/> is the name of a rebinding control GameObject within the Controls tab of the Settings
     /// page. The control is expected to be a child of: "OptionWindow(Clone)/ControlPage/Scroll/View/Content/".
     /// </summary>
     public static RebindUIPosition Before(string target) => new(Kind.Before, 0, target);
+
     /// <inheritdoc cref="RebindUIPosition.Before(string)"/>
     public static RebindUIPosition After(string target) => new(Kind.After, 0, target);
+
     public static RebindUIPosition End() => new(Kind.End, 0);
 
     private RebindUIPosition(Kind type, int index, string? target = null)

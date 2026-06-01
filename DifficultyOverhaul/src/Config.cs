@@ -30,7 +30,8 @@ internal class ModConfig
         StatMultiplierScope = config.Bind(
             _sectionGeneral,
             "Scope",
-            StatMultiplierConstraint.OnlyEnemyAi);
+            StatMultiplierConstraint.OnlyEnemyAi
+        );
 
         HpMultiplier = config.Bind(_sectionStatMultipliers, "Hp", 1.0f);
         MpMultiplier = config.Bind(_sectionStatMultipliers, "Mp", 1.0f);

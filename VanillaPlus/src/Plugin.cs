@@ -65,12 +65,14 @@ public partial class Plugin : BaseUnityPlugin
     {
         var bindingsFilepath = Path.Combine(
             Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location),
-            "bindings.json");
+            "bindings.json"
+        );
 
         var quickload = self.m_main.AddAction(
             $"{Id}.QuickLoad",
             type: InputActionType.Button,
-            binding: "<Keyboard>/f9");
+            binding: "<Keyboard>/f9"
+        );
         quickload.performed += ctx =>
         {
             var save = SaveManager.Instance.GetSaves(SaveEnum.快速).FirstOrDefault();
@@ -85,7 +87,8 @@ public partial class Plugin : BaseUnityPlugin
             _keyedLocalizedText["quickload"].Cn,
             quickload,
             position: RebindUIPosition.After("Save"),
-            filepath: bindingsFilepath);
+            filepath: bindingsFilepath
+        );
     }
 
     private void AppendDBLoadLanguage()
@@ -100,6 +103,6 @@ public partial class Plugin : BaseUnityPlugin
 
     private readonly Dictionary<string, (string En, string Cn)> _keyedLocalizedText = new()
     {
-        ["quickload"] = ("Quick Load", "快速读档")
+        ["quickload"] = ("Quick Load", "快速读档"),
     };
 }

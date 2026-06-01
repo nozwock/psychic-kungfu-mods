@@ -42,7 +42,6 @@ public partial class Plugin : BaseUnityPlugin
     }
 
     private void OnDestroy()
-
     {
         _harmony?.UnpatchSelf();
         _harmony = null;

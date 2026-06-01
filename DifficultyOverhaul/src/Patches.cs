@@ -12,8 +12,9 @@ namespace DifficultyOverhaul.Patches;
         typeof(GameObject),
         typeof(Fight.Cell),
         typeof(Fight.Orientation),
-        typeof(bool)
-    ])]
+        typeof(bool),
+    ]
+)]
 internal class Role_ctor_Patch
 {
     private static void Postfix(Role __instance, Fight.CampType camp, bool ai)
@@ -22,9 +23,13 @@ internal class Role_ctor_Patch
         // for the plugin/patch. This issue doesn't occur on BepInEx, I tested. Why? How? Idk.
         var self = __instance;
         var cfg = ModConfig.Instance;
-        if (ai
-            && (cfg.StatMultiplierScope.Value == ModConfig.StatMultiplierConstraint.AllAi
-            || camp == Fight.CampType.Enermy))
+        if (
+            ai
+            && (
+                cfg.StatMultiplierScope.Value == ModConfig.StatMultiplierConstraint.AllAi
+                || camp == Fight.CampType.Enermy
+            )
+        )
         {
             self.m_maxHp = Mathf.RoundToInt(self.m_maxHp * cfg.HpMultiplier.Value);
             self.m_maxMp = Mathf.RoundToInt(self.m_maxMp * cfg.MpMultiplier.Value);

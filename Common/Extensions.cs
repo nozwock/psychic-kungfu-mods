@@ -18,12 +18,16 @@ public static class ReflectionExtensions
         this Type type,
         string localMethodName,
         Type[]? argumentTypes,
-        BindingFlags? bindingAttr = null)
+        BindingFlags? bindingAttr = null
+    )
     {
-        return type
-            .GetNestedTypes(BindingFlags.NonPublic)
-            .SelectMany(it => it.GetMethods(bindingAttr
-                ?? BindingFlags.Static | BindingFlags.Instance | BindingFlags.NonPublic))
+        return type.GetNestedTypes(BindingFlags.NonPublic)
+            .SelectMany(it =>
+                it.GetMethods(
+                    bindingAttr
+                        ?? BindingFlags.Static | BindingFlags.Instance | BindingFlags.NonPublic
+                )
+            )
             .First(m =>
             {
                 if (!m.Name.Contains(localMethodName))

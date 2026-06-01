@@ -14,7 +14,9 @@ namespace VanillaPlus.Patches;
 [HarmonyPatch(typeof(InputActionRebindingExtensions), "LoadBindingOverridesFromJsonInternal")]
 internal class InputActionRebindingExtensions_LoadBindingOverridesFromJsonInternal_Patch
 {
-    private static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> instructions)
+    private static IEnumerable<CodeInstruction> Transpiler(
+        IEnumerable<CodeInstruction> instructions
+    )
     {
         var codes = instructions.ToArray();
         var ctorNotImplementedException = typeof(NotImplementedException).GetConstructor(types: []);
@@ -25,11 +27,13 @@ internal class InputActionRebindingExtensions_LoadBindingOverridesFromJsonIntern
 
             // This random thrown NotImplementedException doesn't even make sense. And, it breaks InputManager's Awake
             // since it's not wrapping the call in a try-catch.
-            if (i + 1 <= codes.Length
+            if (
+                i + 1 <= codes.Length
                 && code.opcode == OpCodes.Newobj
                 && code.operand is ConstructorInfo ctor
                 && ctor == ctorNotImplementedException
-                && codes[i + 1].opcode == OpCodes.Throw)
+                && codes[i + 1].opcode == OpCodes.Throw
+            )
             {
                 code.opcode = OpCodes.Nop;
                 code.operand = null;
@@ -57,13 +61,17 @@ internal class SaveData_get_FileName_FixPlayerName_Patch
 [HarmonyPatch(typeof(SaveManager), nameof(SaveManager.Load), [typeof(string), typeof(string)])]
 internal class SaveManager_Load_PrioritizeSaveFilename_Patch
 {
-    private static readonly Regex managedSaveRegex = new("^(?:Fixed(\\d+)|Quick(\\d+)|AutoSave\\d+)$");
+    private static readonly Regex managedSaveRegex = new(
+        "^(?:Fixed(\\d+)|Quick(\\d+)|AutoSave\\d+)$"
+    );
 
     private static SaveData UpdateSaveName(SaveData saveData, string parent, string path)
     {
         var filename = Path.GetFileNameWithoutExtension(path);
-        if (saveData.m_name == null
-            || (saveData.m_name != filename && !managedSaveRegex.IsMatch(saveData.m_name)))
+        if (
+            saveData.m_name == null
+            || (saveData.m_name != filename && !managedSaveRegex.IsMatch(saveData.m_name))
+        )
         {
             var filepath = Path.Combine(parent, path);
             saveData.m_path = filepath;
@@ -71,19 +79,20 @@ internal class SaveManager_Load_PrioritizeSaveFilename_Patch
 
             File.WriteAllBytes(
                 saveData.m_path,
-                SaveManager.Instance.Encrypt(JsonUtility.ToJson(saveData)));
+                SaveManager.Instance.Encrypt(JsonUtility.ToJson(saveData))
+            );
         }
 
         return saveData;
     }
 
-    private static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> instructions)
+    private static IEnumerable<CodeInstruction> Transpiler(
+        IEnumerable<CodeInstruction> instructions
+    )
     {
-        var saveDataFromJsonMethod = AccessTools.Method(
-            typeof(JsonUtility),
-            nameof(JsonUtility.FromJson),
-            [typeof(string)]
-        ).MakeGenericMethod(typeof(SaveData));
+        var saveDataFromJsonMethod = AccessTools
+            .Method(typeof(JsonUtility), nameof(JsonUtility.FromJson), [typeof(string)])
+            .MakeGenericMethod(typeof(SaveData));
 
         var updateSaveNameMethod = AccessTools.Method(
             typeof(SaveManager_Load_PrioritizeSaveFilename_Patch),

@@ -45,23 +45,33 @@
       <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
     </PackageReference>
 
-    <PackageReference Include="BepInEx.AssemblyPublicizer.MSBuild" Version="0.4.2"
-      PrivateAssets="all" />
+    <PackageReference
+      Include="BepInEx.AssemblyPublicizer.MSBuild"
+      Version="0.4.2"
+      PrivateAssets="all"
+    />
 
     <Reference Include="$(DllDir)/Assembly-CSharp.dll" Publicize="true" Private="false" />
     <!-- Reference Unity assemblies and others. BaGet's UnityEngine.Module should not be referenced as those assemblies
     are not for the Chinese Unity version. -->
-    <Reference Include="$(DllDir)/*.dll"
+    <Reference
+      Include="$(DllDir)/*.dll"
       Exclude="$(DllDir)/Assembly-CSharp*.dll;$(DllDir)/System*.dll;$(DllDir)/mscorlib.dll;$(DllDir)/netstandard.dll"
-      Private="false" />
-    <Reference Include="$(LibDir)/*.dll"
+      Private="false"
+    />
+    <Reference
+      Include="$(LibDir)/*.dll"
       Exclude="$(LibDir)/System*.dll;$(LibDir)/mscorlib.dll;$(LibDir)/netstandard.dll"
-      Private="false" />
+      Private="false"
+    />
   </ItemGroup>
 
   <ItemGroup Condition="'$(TargetFramework.TrimEnd(`0123456789`))' == 'net'">
-    <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.0.2"
-      PrivateAssets="all" />
+    <PackageReference
+      Include="Microsoft.NETFramework.ReferenceAssemblies"
+      Version="1.0.2"
+      PrivateAssets="all"
+    />
   </ItemGroup>
 
   <Target Name="CleanupPublishDir" AfterTargets="Publish">
@@ -77,8 +87,11 @@
     </Delete>
   </Target>
 
-  <Target Name="CopyMod" AfterTargets="Publish"
-    Condition="'$(PluginDir)' != '' AND '$(SkipCopyMod)' != 'true'">
+  <Target
+    Name="CopyMod"
+    AfterTargets="Publish"
+    Condition="'$(PluginDir)' != '' AND '$(SkipCopyMod)' != 'true'"
+  >
     <!-- .NET 9+ Message will only show up with -v:d or -tl:off in terminals -->
     <Message Text="Copying mod to &quot;$(PluginDir)&quot;" Importance="High" />
 
@@ -86,7 +99,9 @@
     <ItemGroup>
       <FilesToCopy Include="$([MSBuild]::EnsureTrailingSlash('$(PublishDir)'))**\*.*" />
     </ItemGroup>
-    <Copy SourceFiles="@(FilesToCopy)"
-      DestinationFolder="$([MSBuild]::EnsureTrailingSlash('$(PluginDir)/$(AssemblyName)'))%(RecursiveDir)" />
+    <Copy
+      SourceFiles="@(FilesToCopy)"
+      DestinationFolder="$([MSBuild]::EnsureTrailingSlash('$(PluginDir)/$(AssemblyName)'))%(RecursiveDir)"
+    />
   </Target>
 </Project>
