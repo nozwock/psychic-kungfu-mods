@@ -334,7 +334,12 @@ internal readonly struct RebindUIPosition
     public string? Target { get; }
 
     public static RebindUIPosition AtIndex(int index) => new(Kind.Index, index);
+    /// <summary>
+    /// <paramref name="target"/> is the name of a rebinding control GameObject within the Controls tab of the Settings
+    /// page. The control is expected to be a child of: "OptionWindow(Clone)/ControlPage/Scroll/View/Content/".
+    /// </summary>
     public static RebindUIPosition Before(string target) => new(Kind.Before, 0, target);
+    /// <inheritdoc cref="RebindUIPosition.Before(string)"/>
     public static RebindUIPosition After(string target) => new(Kind.After, 0, target);
     public static RebindUIPosition End() => new(Kind.End, 0);
 
