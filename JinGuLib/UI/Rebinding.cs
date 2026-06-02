@@ -89,26 +89,20 @@ public static class RebindRegistry
         Debug.Log($"Registering rebindable action: id=\"{id}\" displayName=\"{displayName}\"");
         _actionsNameMap[id] = new(action, displayName, position ?? RebindPosition.End(), filepath);
 
-        if (filepath != null)
+        if (
+            filepath != null
+            && _bindingOverridesByFile.TryGetValue(filepath, out var bindingOverrides)
+            && bindingOverrides.Bindings.TryGetValue(id, out var bindings)
+        )
         {
-            if (_bindingOverridesByFile.TryGetValue(filepath, out var bindingOverrides))
+            foreach (var binding in bindings)
             {
-                if (bindingOverrides.Bindings.TryGetValue(id, out var bindings))
-                {
-                    foreach (var binding in bindings)
-                    {
-                        if (VerboseLogging)
-                            Debug.Log(
-                                $"Overriding binding: id=\"{id}\" index={binding.Index} path=\"{binding.Path}\""
-                            );
-                        if (!string.IsNullOrEmpty(binding.Path))
-                            action.ApplyBindingOverride(binding.Index, binding.Path);
-                    }
-                }
-            }
-            else
-            {
-                _bindingOverridesByFile[filepath] = new([]);
+                if (VerboseLogging)
+                    Debug.Log(
+                        $"Overriding binding: id=\"{id}\" index={binding.Index} path=\"{binding.Path}\""
+                    );
+                if (!string.IsNullOrEmpty(binding.Path))
+                    action.ApplyBindingOverride(binding.Index, binding.Path);
             }
         }
     }
@@ -117,22 +111,21 @@ public static class RebindRegistry
     {
         Debug.Log("Saving bindings for custom InputActions...");
         var actionsNameMapByFile = _actionsNameMap
-            .Where(pair => pair.Value.Filepath != null)
-            .GroupBy(pair => pair.Value.Filepath)
+            .Where(pair => !string.IsNullOrEmpty(pair.Value.Filepath))
+            .GroupBy(pair => pair.Value.Filepath!)
             .ToDictionary(
                 group => group.Key,
                 group => group.ToDictionary(pair => pair.Key, pair => pair.Value)
             );
 
-        foreach (var (filepath, bindingOverrides) in _bindingOverridesByFile)
+        foreach (var (filepath, actionsNameMap) in actionsNameMapByFile)
         {
-            if (!actionsNameMapByFile.TryGetValue(filepath, out var actionsNameMap))
+            if (!_bindingOverridesByFile.TryGetValue(filepath, out _))
             {
-                Debug.LogWarning(
-                    $"Something went wrong with bookkeeping. This shouldn't be reachable: filepath={filepath}"
-                );
-                continue;
+                _bindingOverridesByFile[filepath] = new([]);
             }
+
+            var bindingOverrides = _bindingOverridesByFile[filepath];
 
             // Populate bindings
             foreach (var (id, rebindable) in actionsNameMap)
