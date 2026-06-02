@@ -12,14 +12,11 @@ public partial class Plugin : BaseUnityPlugin
     internal static Plugin Instance { get; private set; } = null!;
     internal new ManualLogSource Logger => base.Logger;
 
-    private RebindManager? _rebindHandler;
+    private RebindUILifecycle? _rebindUI;
 
     private void Awake()
     {
         Instance = this;
-
-        Logger.LogInfo($"Setting up {typeof(RebindManager).FullName}...");
-        _rebindHandler = new();
 
         try
         {
@@ -30,16 +27,33 @@ public partial class Plugin : BaseUnityPlugin
         {
             Logger.LogError(ex);
         }
+
+        try
+        {
+            Logger.LogInfo($"Setting up {nameof(RebindRegistry)}...");
+            _rebindUI = new();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex);
+        }
     }
 
-    private void OnApplicationQuit() => Destroy();
+    private void OnApplicationQuit() => Shutdown();
 
-    private void OnDestroy() => Destroy();
+    private void OnDestroy() => Shutdown();
 
-    private void Destroy()
+    private bool _shutdown;
+
+    private void Shutdown()
     {
-        _rebindHandler?.Dispose();
-        _rebindHandler = null;
+        if (_shutdown)
+            return;
+        _shutdown = true;
+
+        _rebindUI?.Dispose();
+        _rebindUI = null;
+        RebindRegistry.SaveBindingOverrides();
 
         Fix_LoadBindingOverridesFromJsonInternal.Undo();
     }

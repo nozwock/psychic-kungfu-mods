@@ -85,7 +85,7 @@ public partial class Plugin : BaseUnityPlugin
         };
         InputManager.Instance.m_asset.Enable();
 
-        RebindManager.Instance.RegisterRebindableAction(
+        RebindRegistry.AddRebindableAction(
             _keyedLocalizedText["quickload"].Cn,
             quickload,
             position: RebindPosition.After("Save"),

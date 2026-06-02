@@ -14,10 +14,7 @@ using UnityEngine.UI;
 
 namespace JinGuLib.UI;
 
-/// <summary>
-/// Type is not thread-safe. So, only call methods from the Unity thread (default plugin thread).
-/// </summary>
-public class RebindManager
+public static class RebindRegistry
 {
     private record class RebindableAction(
         InputAction Action,
@@ -32,57 +29,21 @@ public class RebindManager
         Dictionary<string, List<BindingOverride>> Bindings
     );
 
-    private static RebindManager? _instance;
-    public static RebindManager Instance =>
-        _instance
-        ?? throw new NullReferenceException(
-            $"{nameof(RebindManager)} isn't initialized yet. "
-                + $"Are you sure that {Plugin.Id} is being loaded before your mod?"
-        );
-    public bool VerboseLogging { get; set; }
+    public static bool VerboseLogging { get; set; }
 
-    private readonly ConditionalWeakTable<GoTable, InputAction> _goTableActions = new();
-    private readonly Dictionary<string, RebindableAction> _actionsNameMap = [];
-    private readonly Dictionary<string, BindingOverrides> _bindingOverridesByFile = [];
-    private readonly List<IDetour> _detours = [];
+    private static readonly Dictionary<string, RebindableAction> _actionsNameMap = [];
+    private static readonly Dictionary<string, BindingOverrides> _bindingOverridesByFile = [];
+    private static GameObject? _controlPrefab;
 
-    private MethodInfo? _method_OptionWindow_OnAwake_SetInput;
-    private FieldInfo? _field_OptionWindow_OnAwake_goTable;
-    private GameObject? _controlPrefab;
-
-    /// <inheritdoc cref="RebindManager"/>
-    internal RebindManager()
+    static RebindRegistry()
     {
-        _instance = this;
-
 #if DEBUG
         VerboseLogging = true;
 #endif
-
-        // This allows at least loading of bindings from disk to work even if the UI Hooks failed
-        try
-        {
-            ApplyUIManagingHooks();
-        }
-        catch (Exception ex)
-        {
-            Debug.LogError($"Failed to inject custom rebind options in Settings UI: {ex}");
-        }
-    }
-
-    internal void Dispose()
-    {
-        _instance = null;
-
-        SaveBindingOverrides();
-
-        foreach (var detour in _detours)
-            detour.Dispose();
-        _detours.Clear();
     }
 
     /// <summary>
-    /// <paramref name="id"/> must be unique among all registrations done via <see cref="RebindManager"/>.
+    /// <paramref name="id"/> must be unique among all registrations done via <see cref="RebindRegistry"/>.
     /// <para/>
     /// If <paramref name="id"/> is null, <see cref="InputAction.name"/> will be used in its place.
     /// <para/>
@@ -94,7 +55,7 @@ public class RebindManager
     /// <param name="filepath">
     /// If provided, the binding for the action is stored at this filepath.
     /// </param>
-    public void RegisterRebindableAction(
+    public static void AddRebindableAction(
         string displayName,
         InputAction action,
         string? id = null,
@@ -152,7 +113,7 @@ public class RebindManager
         }
     }
 
-    private void SaveBindingOverrides()
+    internal static void SaveBindingOverrides()
     {
         Debug.Log("Saving bindings for custom InputActions...");
         var actionsNameMapByFile = _actionsNameMap
@@ -199,7 +160,82 @@ public class RebindManager
         }
     }
 
-    private void ApplyUIManagingHooks()
+    internal static IEnumerable<(GameObject Go, InputAction Action)> CreateAllControlGameObjects(
+        GameObject controlGo,
+        bool resetPrefab = false
+    )
+    {
+        static int GetSiblingIndexByName(Transform parent, string? childGoName)
+        {
+            if (childGoName == null)
+                return parent.childCount;
+            for (var i = parent.childCount - 1; i >= 0; i--)
+            {
+                var child = parent.GetChild(i);
+                if (child.name == childGoName)
+                    return child.GetSiblingIndex();
+            }
+            return parent.childCount;
+        }
+
+        if (resetPrefab && _controlPrefab != null)
+        {
+            UnityEngine.Object.DestroyImmediate(_controlPrefab);
+            _controlPrefab = null;
+        }
+        if (_controlPrefab == null)
+        {
+            _controlPrefab = UnityEngine.Object.Instantiate(controlGo);
+            _controlPrefab.SetActive(false);
+            _controlPrefab.name = $"{nameof(RebindRegistry)}_Control_Prefab";
+        }
+
+        if (VerboseLogging)
+            Debug.Log($"Pending control count: {_actionsNameMap.Count}");
+        foreach (var (id, rebindable) in _actionsNameMap)
+        {
+            if (VerboseLogging)
+                Debug.Log($"Creating custom control GameObject: id=\"{id}\"");
+
+            var parent = controlGo.transform.parent;
+            var go = UnityEngine.Object.Instantiate(_controlPrefab, parent);
+            go.name = id;
+
+            var langKey = go.transform.GetComponentInChildren<LanguageKey>();
+            langKey.GetComponent<Text>().text = rebindable.DisplayName;
+
+            switch (rebindable.Position.Type)
+            {
+                case RebindPosition.Kind.Index:
+                    go.transform.SetSiblingIndex(rebindable.Position.Index);
+                    break;
+                case RebindPosition.Kind.Before:
+                    go.transform.SetSiblingIndex(
+                        GetSiblingIndexByName(parent, rebindable.Position.Target)
+                    );
+                    break;
+                case RebindPosition.Kind.After:
+                    go.transform.SetSiblingIndex(
+                        GetSiblingIndexByName(parent, rebindable.Position.Target) + 1
+                    );
+                    break;
+                case RebindPosition.Kind.End:
+                    break;
+            }
+
+            yield return (go, rebindable.Action);
+        }
+    }
+}
+
+internal sealed class RebindUILifecycle : IDisposable
+{
+    private readonly List<IDetour> _detours = [];
+    private readonly ConditionalWeakTable<GoTable, InputAction> _goTableActions = new();
+    private readonly MethodInfo _method_OptionWindow_OnAwake_SetInput;
+    private FieldInfo? _field_OptionWindow_OnAwake_goTable;
+
+    public RebindUILifecycle()
     {
         _method_OptionWindow_OnAwake_SetInput = typeof(OptionWindow).GetLocalMethod(
             $"<{nameof(OptionWindow.OnAwake)}>g__SetInput",
@@ -228,6 +264,13 @@ public class RebindManager
         ]);
     }
 
+    public void Dispose()
+    {
+        foreach (var detour in _detours)
+            detour.Dispose();
+        _detours.Clear();
+    }
+
     private void Hook_OptionWindow_OnAwake(Action<OptionWindow> orig, OptionWindow self)
     {
         try
@@ -239,7 +282,15 @@ public class RebindManager
                 .OfType<GoTable>()
                 .First();
 
-            CreateControlGameObjects(controlGoTable.gameObject);
+            foreach (
+                var (go, action) in RebindRegistry.CreateAllControlGameObjects(
+                    controlGoTable.gameObject
+                )
+            )
+            {
+                go.SetActive(true);
+                _goTableActions.Add(go.GetComponent<GoTable>(), action);
+            }
         }
         catch (Exception ex)
         {
@@ -271,81 +322,20 @@ public class RebindManager
                 var childGoTable = controlsContainer.GetChild(i).GetComponent<GoTable>();
                 if (_goTableActions.TryGetValue(childGoTable, out var action))
                 {
-                    if (VerboseLogging)
+                    if (RebindRegistry.VerboseLogging)
                         Debug.Log(
                             "Updating custom control: "
                                 + $"id=\"{childGoTable.gameObject.name}\" goTableName=\"{childGoTable.name}\""
                         );
                     // XXX Could just have a hardcoded copy of this SetInput local method instead of calling it via
                     // reflection.
-                    _method_OptionWindow_OnAwake_SetInput!.Invoke(self, [childGoTable, action, 0]);
+                    _method_OptionWindow_OnAwake_SetInput.Invoke(self, [childGoTable, action, 0]);
                 }
             }
         }
         catch (Exception ex)
         {
             Debug.LogError(ex);
-        }
-    }
-
-    private void CreateControlGameObjects(GameObject prefab)
-    {
-        static int GetSiblingIndexByName(Transform parent, string? childGoName)
-        {
-            if (childGoName == null)
-                return parent.childCount;
-            for (var i = parent.childCount - 1; i >= 0; i--)
-            {
-                var child = parent.GetChild(i);
-                if (child.name == childGoName)
-                    return child.GetSiblingIndex();
-            }
-            return parent.childCount;
-        }
-
-        if (_controlPrefab == null)
-        {
-            _controlPrefab = UnityEngine.Object.Instantiate(prefab);
-            _controlPrefab.SetActive(false);
-            _controlPrefab.name = $"{nameof(RebindManager)}_Control_Prefab";
-        }
-
-        if (VerboseLogging)
-            Debug.Log($"Pending control count: {_actionsNameMap.Count}");
-        foreach (var (id, rebindable) in _actionsNameMap)
-        {
-            if (VerboseLogging)
-                Debug.Log($"Creating custom control GameObject: id=\"{id}\"");
-
-            var parent = prefab.transform.parent;
-            var go = UnityEngine.Object.Instantiate(_controlPrefab, parent);
-            go.name = id;
-
-            var langKey = go.transform.GetComponentInChildren<LanguageKey>();
-            langKey.GetComponent<Text>().text = rebindable.DisplayName;
-
-            switch (rebindable.Position.Type)
-            {
-                case RebindPosition.Kind.Index:
-                    go.transform.SetSiblingIndex(rebindable.Position.Index);
-                    break;
-                case RebindPosition.Kind.Before:
-                    go.transform.SetSiblingIndex(
-                        GetSiblingIndexByName(parent, rebindable.Position.Target)
-                    );
-                    break;
-                case RebindPosition.Kind.After:
-                    go.transform.SetSiblingIndex(
-                        GetSiblingIndexByName(parent, rebindable.Position.Target) + 1
-                    );
-                    break;
-                case RebindPosition.Kind.End:
-                    break;
-            }
-
-            go.SetActive(true);
-
-            _goTableActions.Add(go.GetComponent<GoTable>(), rebindable.Action);
         }
     }
 }
