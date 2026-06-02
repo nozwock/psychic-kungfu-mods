@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using System.Reflection;
 using BepInEx;
@@ -63,11 +62,6 @@ public partial class Plugin : BaseUnityPlugin
 
     private void InitActions()
     {
-        var bindingsFilepath = Path.Combine(
-            Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location),
-            "bindings.json"
-        );
-
         InputManager.Instance.m_asset.Disable();
         var quickload = InputManager.Instance.m_main.AddAction(
             $"{Id}.QuickLoad",
@@ -88,8 +82,7 @@ public partial class Plugin : BaseUnityPlugin
         RebindRegistry.AddRebindableAction(
             _keyedLocalizedText["quickload"].Cn,
             quickload,
-            position: RebindPosition.After("Save"),
-            filepath: bindingsFilepath
+            position: RebindPosition.After("Save")
         );
     }
 

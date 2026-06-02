@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.CompilerServices;
+using BepInEx;
 using Common.Extensions;
 using HarmonyLib;
 using MonoMod.RuntimeDetour;
@@ -62,10 +63,13 @@ public static class RebindRegistry
     /// Otherwise, the value is used as a plain string.
     /// </param>
     /// <param name="filepath">
-    /// If provided, the action's binding overrides are persisted to this file.
+    /// File used to persist this action's binding overrides.
     /// <para/>
-    /// If null, bindings will not be saved or restored.
+    /// If null, a default path is used. For assemblies located in a subdirectory of <c>BepInEx/plugins</c>, the
+    /// default filename is <c>bindings.json</c>. Otherwise, the assembly name is prefixed to the filename (e.g.
+    /// <c>MyMod-bindings.json</c>).
     /// </param>
+    [MethodImpl(MethodImplOptions.NoInlining)]
     public static void AddRebindableAction(
         string displayName,
         InputAction action,
@@ -75,6 +79,7 @@ public static class RebindRegistry
     )
     {
         id ??= action.name;
+        filepath ??= GetDefaultBindingsPath(Assembly.GetCallingAssembly());
 
         Debug.Log($"Registering rebindable action: id=\"{id}\" displayName=\"{displayName}\"");
 
@@ -87,6 +92,34 @@ public static class RebindRegistry
         _actionsNameMap[id] = rebindable;
 
         LoadBindingOverrides(id, rebindable);
+    }
+
+    private static string? GetDefaultBindingsPath(Assembly modAsm)
+    {
+        var asmName = modAsm.GetName().Name;
+        if (modAsm.Location.IsNullOrWhiteSpace())
+        {
+            // https://github.com/silksong-modding/Silksong.I18N/blob/916aecfcf2dd7b9f16d5b3136774b1f1d1b7b440/src/LanguagePatches.cs#L40-L47
+            Debug.Log(
+                $"Mod \"{asmName}\" assembly has no location. "
+                    + "If you're using ScriptEngine, "
+                    + "enable DumpedAssemblies of ScriptEngine to have a default bindings file."
+            );
+            return null;
+        }
+
+        var modDir = Path.GetDirectoryName(modAsm.Location);
+        var isPluginsDir = string.Equals(
+            Path.GetFullPath(modDir),
+            Path.GetFullPath(Paths.PluginPath), // BepInEx/plugins/
+            StringComparison.OrdinalIgnoreCase // Case-insensitive since the game is only on windows
+        );
+
+        if (!isPluginsDir)
+        {
+            return Path.Combine(modDir, "bindings.json");
+        }
+        return Path.Combine(modDir, $"{asmName}-bindings.json");
     }
 
     private static void LoadBindingOverrides(string id, RebindableAction rebindable)
