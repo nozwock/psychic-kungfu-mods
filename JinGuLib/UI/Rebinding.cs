@@ -52,8 +52,19 @@ public static class RebindRegistry
     /// temporarily disable <see cref="InputManager.m_asset"/> before adding them, then re-enable it afterward, since
     /// new <see cref="InputAction"/> instances cannot be added while any actions are enabled.
     /// </summary>
+    /// <param name="displayName">
+    /// Localized display string using <see cref="DBLoad.Language"/>.
+    /// <para/>
+    /// If localization is desired, pass a Chinese default text that has a corresponding <see
+    /// cref="DBLoad.LanguageData"/> entry in <see cref="DBLoad.Language.Dic"/> where <c>m_id</c> equals <see
+    /// cref="string.GetHashCode"/> of that Chinese text.
+    /// <para/>
+    /// Otherwise, the value is used as a plain string.
+    /// </param>
     /// <param name="filepath">
-    /// If provided, the binding for the action is stored at this filepath.
+    /// If provided, the action's binding overrides are persisted to this file.
+    /// <para/>
+    /// If null, bindings will not be saved or restored.
     /// </param>
     public static void AddRebindableAction(
         string displayName,
