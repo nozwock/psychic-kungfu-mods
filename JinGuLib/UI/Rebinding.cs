@@ -63,20 +63,42 @@ public static class RebindRegistry
         string? filepath = null
     )
     {
+        id ??= action.name;
+
+        Debug.Log($"Registering rebindable action: id=\"{id}\" displayName=\"{displayName}\"");
+
+        var rebindable = new RebindableAction(
+            action,
+            displayName,
+            position ?? RebindPosition.End(),
+            filepath
+        );
+        _actionsNameMap[id] = rebindable;
+
+        LoadBindingOverrides(id, rebindable);
+    }
+
+    private static void LoadBindingOverrides(string id, RebindableAction rebindable)
+    {
+        if (rebindable.Filepath == null)
+            return;
+        // Separate if-statement since otherwise rebindable.Filepath won't be considered non-null by compiler
+        if (string.IsNullOrWhiteSpace(rebindable.Filepath))
+            return;
+
         try
         {
             if (
-                filepath != null
-                && !_bindingOverridesByFile.TryGetValue(filepath, out _)
-                && File.Exists(filepath)
+                !_bindingOverridesByFile.TryGetValue(rebindable.Filepath, out _)
+                && File.Exists(rebindable.Filepath)
             )
             {
-                var text = File.ReadAllText(filepath);
+                var text = File.ReadAllText(rebindable.Filepath);
                 if (!string.IsNullOrEmpty(text))
                 {
                     var obj = JsonConvert.DeserializeObject(text, typeof(BindingOverrides));
                     if (obj != null)
-                        _bindingOverridesByFile[filepath] = (BindingOverrides)obj;
+                        _bindingOverridesByFile[rebindable.Filepath] = (BindingOverrides)obj;
                 }
             }
         }
@@ -85,13 +107,8 @@ public static class RebindRegistry
             Debug.LogWarning(ex);
         }
 
-        id ??= action.name;
-        Debug.Log($"Registering rebindable action: id=\"{id}\" displayName=\"{displayName}\"");
-        _actionsNameMap[id] = new(action, displayName, position ?? RebindPosition.End(), filepath);
-
         if (
-            filepath != null
-            && _bindingOverridesByFile.TryGetValue(filepath, out var bindingOverrides)
+            _bindingOverridesByFile.TryGetValue(rebindable.Filepath, out var bindingOverrides)
             && bindingOverrides.Bindings.TryGetValue(id, out var bindings)
         )
         {
@@ -102,7 +119,7 @@ public static class RebindRegistry
                         $"Overriding binding: id=\"{id}\" index={binding.Index} path=\"{binding.Path}\""
                     );
                 if (!string.IsNullOrEmpty(binding.Path))
-                    action.ApplyBindingOverride(binding.Index, binding.Path);
+                    rebindable.Action.ApplyBindingOverride(binding.Index, binding.Path);
             }
         }
     }
