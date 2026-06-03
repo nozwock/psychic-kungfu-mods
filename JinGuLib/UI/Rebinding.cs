@@ -74,7 +74,7 @@ public static class RebindRegistry
         string displayName,
         InputAction action,
         string? id = null,
-        RebindPosition? position = null,
+        in RebindPosition? position = null,
         string? filepath = null
     )
     {
