@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Reflection;
 using BepInEx;
@@ -70,7 +71,23 @@ public partial class Plugin : BaseUnityPlugin
         );
         quickload.performed += ctx =>
         {
-            var save = SaveManager.Instance.GetSaves(SaveEnum.快速).FirstOrDefault();
+            var manager = SaveManager.Instance;
+            var save = Directory
+                .EnumerateFiles(SaveManager.Instance.SavePath, "*.bytes")
+                .AsParallel()
+                .Select(path => (SaveData?)manager.Load(Path.GetDirectoryName(path), path))
+                .DefaultIfEmpty(null)
+                .Aggregate(
+                    (a, b) =>
+                    {
+                        if (a == null)
+                            return b;
+                        if (b == null)
+                            return a;
+                        return a.m_saveTime > b.m_saveTime ? a : b;
+                    }
+                );
+
             if (save != null)
             {
                 SaveManager.Instance.Load(save);
