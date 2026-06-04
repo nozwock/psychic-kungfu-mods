@@ -50,6 +50,15 @@ public record class SaveMetadata(
     public void Write(string filepath) =>
         File.WriteAllText(filepath, JsonConvert.SerializeObject(this));
 
+    public SaveData? ReadSaveData()
+    {
+        if (Filepath == null)
+            return null;
+
+        var path = Filepath.RemoveSuffix(".meta.json") + ".bytes";
+        return SaveManager.Instance.Load(Path.GetDirectoryName(path), Path.GetFileName(path));
+    }
+
     public static Task WriteMissingMetadataFilesAsync()
     {
         var saveManager = SaveManager.Instance;
