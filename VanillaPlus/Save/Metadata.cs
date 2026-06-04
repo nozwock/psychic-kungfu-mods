@@ -1,3 +1,5 @@
+using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
@@ -49,6 +51,43 @@ public record class SaveMetadata(
 
     public void Write(string filepath) =>
         File.WriteAllText(filepath, JsonConvert.SerializeObject(this));
+
+    public static IEnumerable<SaveMetadata?> ReadAllFixedSlots()
+    {
+        var parent = SaveManager.Instance.FixedPath;
+        return Enumerable
+            .Range(0, 30)
+            .AsParallel()
+            .Select(i =>
+            {
+                var filename = $"Fixed({i}).meta.json";
+                var filepath = Path.Combine(parent, filename);
+                return File.Exists(filepath)
+                    ? (Meta: Read(filepath), Index: i)
+                    : (Meta: null, Index: i);
+            })
+            .OrderBy(pair => pair.Index)
+            .Select(pair => pair.Meta);
+    }
+
+    public static IEnumerable<SaveMetadata> ReadAll(SaveEnum kind)
+    {
+        var searchPath = kind switch
+        {
+            SaveEnum.手动 => SaveManager.Instance.FixedPath,
+            SaveEnum.快速 => SaveManager.Instance.SavePath,
+            SaveEnum.自动 => SaveManager.Instance.AutoPath,
+            _ => throw new ArgumentOutOfRangeException(
+                $"Unknown variant of enum {nameof(SaveEnum)}: {Enum.GetName(typeof(SaveEnum), kind)}"
+            ),
+        };
+
+        return Directory
+            .EnumerateFiles(searchPath, "*.meta.json")
+            .AsParallel()
+            .Select(path => Read(path))
+            .OrderByDescending((meta) => meta.SaveTime);
+    }
 
     public SaveData? ReadSaveData()
     {
