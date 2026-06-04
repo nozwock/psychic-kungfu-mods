@@ -40,3 +40,12 @@ internal static class ReflectionExtensions
             });
     }
 }
+
+internal static class StringExtensions
+{
+    public static string RemovePrefix(this string str, string prefix) =>
+        str.StartsWith(prefix) ? str[prefix.Length..] : str;
+
+    public static string RemoveSuffix(this string str, string suffix) =>
+        str.EndsWith(suffix) ? str[..^suffix.Length] : str;
+}
