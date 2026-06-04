@@ -3,7 +3,6 @@ using System.Linq;
 using System.Threading.Tasks;
 using Common.Extensions;
 using Newtonsoft.Json;
-using Sirenix.Utilities;
 
 namespace VanillaPlus.Save;
 
@@ -47,10 +46,9 @@ public record class SaveMetadata(
         return Task.Run(
             delegate
             {
-                searchPaths
-                    .SelectMany(path => Directory.EnumerateFiles(path, "*.bytes"))
-                    .AsParallel()
-                    .ForEach(savefile =>
+                Parallel.ForEach(
+                    searchPaths.SelectMany(path => Directory.EnumerateFiles(path, "*.bytes")),
+                    savefile =>
                     {
                         var metafile = savefile.RemoveSuffix(".bytes") + ".meta.json";
                         if (!File.Exists(metafile))
@@ -63,7 +61,8 @@ public record class SaveMetadata(
                                 ?.ToMetadata()
                                 .Write(metafile);
                         }
-                    });
+                    }
+                );
             }
         );
     }
