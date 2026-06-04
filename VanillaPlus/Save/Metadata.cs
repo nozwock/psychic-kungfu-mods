@@ -20,7 +20,7 @@ public record class SaveMetadata(
 )
 {
     [JsonIgnore]
-    public string? Filepath { get; set; }
+    public string? Filepath { get; private set; }
 
     public static implicit operator SaveMetadata(SaveData save) =>
         new(
