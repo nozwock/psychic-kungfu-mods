@@ -79,7 +79,7 @@ internal static class FileWindow_Patch
 
     [HarmonyReversePatch]
     [HarmonyPatch(typeof(WindowBase), nameof(WindowBase.OnAwake))]
-    private static void Call_WindowBase_OnAwake(WindowBase instance) =>
+    internal static void Call_WindowBase_OnAwake(WindowBase instance) =>
         throw new NotImplementedException();
 
     [HarmonyPrefix]
@@ -135,8 +135,6 @@ internal static class FileWindow_Patch
                 SetSaveSlotContent(
                     index,
                     rect,
-                    self.m_scrollView,
-                    self.m_nextGo,
                     saveMetas,
                     _scrollViewState,
                     () => _refreshScrollMethod.Invoke(self, [])
@@ -161,6 +159,55 @@ internal static class FileWindow_Patch
                     }
                 );
                 slotToggle.isOn = meta == _scrollViewState.SelectedSlot;
+
+                var deleteSaveButton = goTable.GetNode<UIButton>("Del_UIButton");
+                deleteSaveButton.SetLeftClickEvent(() =>
+                {
+                    UIUtlils.OpenTipsBox(
+                        LanguageUtils.GetTextDef(24),
+                        () =>
+                        {
+                            SaveManager.Instance.Del(meta.ReadSaveData());
+
+                            if (_scrollViewState.SelectedTab == SaveEnum.手动)
+                            {
+                                saveMetas[saveMetas.IndexOf(meta)] = null;
+                            }
+                            else
+                            {
+                                saveMetas.Remove(meta);
+                            }
+
+                            if (saveMetas.Count > 0)
+                            {
+                                if (_scrollViewState.SelectedTab != SaveEnum.手动)
+                                {
+                                    if (_scrollViewState.SelectedSlot == meta)
+                                        _scrollViewState.SelectedSlot = saveMetas[0];
+                                    self.m_nextGo.SetActive(true);
+                                }
+                                else
+                                {
+                                    if (_scrollViewState.SelectedSlot == meta)
+                                    {
+                                        _scrollViewState.SelectedSlot = null;
+                                        self.m_nextGo.SetActive(false);
+                                    }
+                                }
+                            }
+                            else
+                            {
+                                _scrollViewState.SelectedSlot = null;
+                                self.m_nextGo.SetActive(false);
+                            }
+
+                            self.m_scrollView.UpdateData();
+                        }
+                    );
+                });
+                deleteSaveButton.gameObject.SetActive(
+                    _scrollViewState.SelectedTab != SaveEnum.自动
+                );
             }
         );
         scrollView.SetItemCountFunc(() => _saveMetasByKind[_scrollViewState.SelectedTab].Count);
@@ -248,8 +295,6 @@ internal static class FileWindow_Patch
     internal static void SetSaveSlotContent(
         int index,
         RectTransform slotRect,
-        AillieoUtils.ScrollView scrollView,
-        GameObject? loadButtonGo,
         List<SaveMetadata?> saveMetas,
         ScrollViewState state,
         Action refreshScroll
@@ -322,53 +367,145 @@ internal static class FileWindow_Patch
 
         var sceneLabel = goTable.GetNode<Text>("Scene_Text");
         sceneLabel.text = LanguageUtils.GetStr(DBLoad.Scene.Get((int)meta.Scene).m_name);
+    }
+}
 
-        var deleteSaveButton = goTable.GetNode<UIButton>("Del_UIButton");
-        deleteSaveButton.SetLeftClickEvent(() =>
+[HarmonyPatch]
+internal static class SaveWindow_Patch
+{
+    private static readonly List<SaveMetadata?> _saveMetas = [];
+    private static readonly FileWindow_Patch.ScrollViewState _scrollViewState = new()
+    {
+        SelectedTab = SaveEnum.手动,
+    };
+    private static MethodInfo? _refreshScrollMethod;
+    private static MethodInfo? _onCloseMethod;
+
+    [HarmonyPrefix]
+    [HarmonyPatch(typeof(SaveWindow), nameof(SaveWindow.OnAwake))]
+    private static bool SaveWindow_OnAwake_Prefix(SaveWindow __instance)
+    {
+        var self = __instance;
+
+        _refreshScrollMethod ??= AccessTools.Method(
+            typeof(SaveWindow),
+            nameof(SaveWindow.RefreshScroll)
+        );
+        _onCloseMethod ??= AccessTools.Method(typeof(SaveWindow), nameof(SaveWindow.OnClose));
+
+        FileWindow_Patch.Call_WindowBase_OnAwake(self);
+
+        var goTable = self.transform.GetComponent<GoTable>();
+
+        var backButton = goTable.GetNode<UIButton>("Back_UIButton");
+        backButton.SetLeftClickEvent(() =>
         {
-            UIUtlils.OpenTipsBox(
-                LanguageUtils.GetTextDef(24),
-                () =>
-                {
-                    SaveManager.Instance.Del(meta.ReadSaveData());
-
-                    if (state.SelectedTab == SaveEnum.手动)
-                    {
-                        saveMetas[saveMetas.IndexOf(meta)] = null;
-                    }
-                    else
-                    {
-                        saveMetas.Remove(meta);
-                    }
-
-                    if (saveMetas.Count > 0)
-                    {
-                        if (state.SelectedTab != SaveEnum.手动)
-                        {
-                            if (state.SelectedSlot == meta)
-                                state.SelectedSlot = saveMetas[0];
-                            loadButtonGo?.SetActive(true);
-                        }
-                        else
-                        {
-                            if (state.SelectedSlot == meta)
-                            {
-                                state.SelectedSlot = null;
-                                loadButtonGo?.SetActive(false);
-                            }
-                        }
-                    }
-                    else
-                    {
-                        state.SelectedSlot = null;
-                        loadButtonGo?.SetActive(false);
-                    }
-
-                    scrollView.UpdateData();
-                }
-            );
+            _onCloseMethod.Invoke(self, []);
         });
-        deleteSaveButton.gameObject.SetActive(state.SelectedTab != SaveEnum.自动);
+
+        var scrollView = goTable.GetNode<AillieoUtils.ScrollView>("ScrollView_ScrollView");
+        self.m_scrollView = scrollView;
+        scrollView.SetItemCountFunc(() => 30);
+        scrollView.SetUpdateFunc(
+            (index, rect) =>
+            {
+                FileWindow_Patch.SetSaveSlotContent(
+                    index,
+                    rect,
+                    _saveMetas,
+                    _scrollViewState,
+                    () => _refreshScrollMethod.Invoke(self, [])
+                );
+
+                var goTable = rect.GetComponent<GoTable>();
+                var meta = _saveMetas[index];
+
+                var slotButton = goTable.GetNode<UIButton>("Have_UIButton");
+                var emptySlotButton = goTable.GetNode<UIButton>("No_UIButton");
+
+                if (meta == null)
+                {
+                    emptySlotButton.gameObject.SetActive(true);
+                    slotButton.gameObject.SetActive(false);
+                    emptySlotButton.SetLeftClickEvent(() =>
+                    {
+                        UIUtlils.OpenRenameWindow(
+                            LanguageUtils.GetTextDef(37),
+                            "Save",
+                            (name) =>
+                            {
+                                if (SaveManager.Instance.FiexedSave(name, index))
+                                {
+                                    _saveMetas[index] = SaveManager.Instance.SaveData.ToMetadata();
+                                    _refreshScrollMethod.Invoke(self, []);
+                                    return true;
+                                }
+
+                                return false;
+                            }
+                        );
+                    });
+                }
+                else
+                {
+                    emptySlotButton.gameObject.SetActive(false);
+                    slotButton.gameObject.SetActive(true);
+                    slotButton.SetLeftClickEvent(() =>
+                    {
+                        UIUtlils.OpenTipsBox(
+                            LanguageUtils.GetTextDef(222),
+                            () =>
+                            {
+                                if (SaveManager.Instance.FiexedSave(meta.Name, index))
+                                {
+                                    _saveMetas[index] = SaveManager.Instance.SaveData.ToMetadata();
+                                    _refreshScrollMethod.Invoke(self, []);
+                                }
+                            }
+                        );
+                    });
+
+                    var deleteSaveButton = goTable.GetNode<UIButton>("Del_UIButton");
+                    deleteSaveButton.SetLeftClickEvent(() =>
+                    {
+                        UIUtlils.OpenTipsBox(
+                            LanguageUtils.GetTextDef(24),
+                            () =>
+                            {
+                                SaveManager.Instance.Del(meta.ReadSaveData());
+                                _saveMetas[_saveMetas.IndexOf(meta)] = null;
+                                _refreshScrollMethod.Invoke(self, []);
+                            }
+                        );
+                    });
+                }
+            }
+        );
+
+        return false;
+    }
+
+    [HarmonyPrefix]
+    [HarmonyPatch(typeof(SaveWindow), nameof(SaveWindow.RefreshScroll))]
+    private static bool SaveWindow_RefreshScroll_Prefix(SaveWindow __instance)
+    {
+        var self = __instance;
+
+        if (_saveMetas.Count == 0)
+        {
+            _saveMetas.AddRange(SaveMetadata.ReadAllFixedSlots());
+        }
+
+        self.m_scrollView.UpdateData();
+
+        return false;
+    }
+
+    [HarmonyPostfix]
+    [HarmonyPatch(typeof(SaveWindow), nameof(SaveWindow.OnClose))]
+    private static void SaveWindow_OnClose_Postfix()
+    {
+        _saveMetas.Clear();
     }
 }
 
