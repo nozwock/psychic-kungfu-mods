@@ -30,8 +30,9 @@ internal static class SaveMetadata_Patches
 
         // path param doesn't contain .bytes suffix
         var self = __instance;
-        var metafile = Path.Combine(parent, path) + ".meta.json";
-        self.SaveData.ToMetadata().Write(metafile);
+        var pathWithoutExt = Path.Combine(parent, path);
+        self.SaveData.m_path = pathWithoutExt + ".bytes"; // Game doesn't update it, so we will
+        self.SaveData.ToMetadata().Write(pathWithoutExt + ".meta.json");
     }
 
     [HarmonyPostfix]
