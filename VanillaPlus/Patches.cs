@@ -65,8 +65,14 @@ internal static class SaveManager_Recent_Patch
 [HarmonyPatch]
 internal static class FileWindow_Patch
 {
-    private static Dictionary<SaveEnum, List<SaveMetadata?>> _saveInfos = [];
-    private static SaveMetadata? _selected;
+    internal sealed class ScrollViewState
+    {
+        public SaveEnum SelectedTab { get; set; }
+        public SaveMetadata? SelectedSlot { get; set; }
+    };
+
+    private static Dictionary<SaveEnum, List<SaveMetadata?>> _saveMetasByKind = [];
+    private static ScrollViewState _scrollViewState = new();
     private static MethodInfo? _refreshScrollMethod;
     private static MethodInfo? _onCloseMethod;
 
@@ -108,7 +114,7 @@ internal static class FileWindow_Patch
         self.m_nextGo = loadButton.transform.parent.gameObject;
         loadButton.SetLeftClickEvent(() =>
         {
-            var save = _selected?.ReadSaveData();
+            var save = _scrollViewState.SelectedSlot?.ReadSaveData();
             if (save != null)
                 SaveManager.Instance.Load(save);
         });
@@ -119,133 +125,44 @@ internal static class FileWindow_Patch
             (index, rect) =>
             {
                 var goTable = rect.GetComponent<GoTable>();
-                var info = _saveInfos[self.m_saveEnum][index];
-                var label = goTable.GetNode<Text>("Num_Text");
-
-                if (self.m_saveEnum == SaveEnum.手动)
-                {
-                    label.transform.parent.gameObject.SetActive(value: true);
-                    label.text = (index + 1).ToString();
-                }
-                else
-                {
-                    label.transform.parent.gameObject.SetActive(value: false);
-                }
+                var saveMetas = _saveMetasByKind[_scrollViewState.SelectedTab];
+                var meta = saveMetas[index];
 
                 var emptySlotGo = goTable.GetNode<RectTransform>("No_RectTransform").gameObject;
                 var slotToggle = goTable.GetNode<UIToggle>("Have_UIToggle");
 
-                if (info == null)
+                SetSaveSlotContent(
+                    index,
+                    rect,
+                    self.m_scrollView,
+                    self.m_nextGo,
+                    saveMetas,
+                    _scrollViewState,
+                    () => _refreshScrollMethod.Invoke(self, [])
+                );
+
+                if (meta == null)
                 {
-                    slotToggle.gameObject.SetActive(value: false);
-                    emptySlotGo.gameObject.SetActive(value: true);
+                    slotToggle.gameObject.SetActive(false);
+                    emptySlotGo.gameObject.SetActive(true);
                     return;
                 }
 
-                slotToggle.gameObject.SetActive(value: true);
-                emptySlotGo.gameObject.SetActive(value: false);
+                slotToggle.gameObject.SetActive(true);
+                emptySlotGo.gameObject.SetActive(false);
                 slotToggle.SetLeftClickEvent(
                     (isOn) =>
                     {
                         if (isOn)
                         {
-                            _selected = info;
+                            _scrollViewState.SelectedSlot = meta;
                         }
                     }
                 );
-
-                var renameButton = goTable.GetNode<UIButton>("Rename_UIButton");
-                renameButton.SetLeftClickEvent(() =>
-                {
-                    UIUtlils.OpenRenameWindow(
-                        LanguageUtils.GetTextDef(23),
-                        info.Name,
-                        (name) =>
-                        {
-                            var save = info.ReadSaveData();
-                            if (save == null)
-                                return false;
-
-                            SaveManager.Instance.ChangeName(save, name);
-                            _saveInfos[self.m_saveEnum][index] = save.ToMetadata();
-                            _refreshScrollMethod.Invoke(self, []);
-
-                            return true;
-                        }
-                    );
-                });
-                renameButton.gameObject.SetActive(self.m_saveEnum != SaveEnum.自动);
-
-                var gameTimeLabel = goTable.GetNode<Text>("GameTime_Text");
-                gameTimeLabel.text = $"{info.GameTime / 3600f:F1}h";
-
-                var difficultyLabel = goTable.GetNode<Text>("Dif_Text");
-                difficultyLabel.text = LanguageUtils.GetDifficultName(info.Difficulty);
-
-                var taskLabel = goTable.GetNode<Text>("Task_Text");
-                if (info.ShowMainId > 0)
-                {
-                    var taskData = DBLoad.Task.Get(info.ShowMainId);
-                    taskLabel.text = LanguageUtils.GetStr(taskData.m_name);
-                }
-                else
-                {
-                    taskLabel.text = string.Empty;
-                }
-
-                var saveNameLabel = goTable.GetNode<Text>("Name_Text");
-                saveNameLabel.text = info.Name;
-
-                var saveTimeLabel = goTable.GetNode<Text>("SaveTime_Text");
-                saveTimeLabel.text = new DateTime(info.SaveTime, DateTimeKind.Local).ToString();
-
-                var sceneLabel = goTable.GetNode<Text>("Scene_Text");
-                sceneLabel.text = LanguageUtils.GetStr(DBLoad.Scene.Get((int)info.Scene).m_name);
-
-                var deleteSaveButton = goTable.GetNode<UIButton>("Del_UIButton");
-                deleteSaveButton.SetLeftClickEvent(() =>
-                {
-                    UIUtlils.OpenTipsBox(
-                        LanguageUtils.GetTextDef(24),
-                        () =>
-                        {
-                            SaveManager.Instance.Del(info.ReadSaveData());
-
-                            var saveInfos = _saveInfos[self.m_saveEnum];
-                            if (self.m_saveEnum == SaveEnum.手动)
-                            {
-                                saveInfos[saveInfos.IndexOf(info)] = null;
-                            }
-                            else
-                            {
-                                saveInfos.Remove(info);
-                            }
-
-                            if (saveInfos.Count > 0)
-                            {
-                                if (_selected == info)
-                                {
-                                    _selected = saveInfos[0];
-                                }
-
-                                self.m_nextGo.SetActive(value: true);
-                            }
-                            else
-                            {
-                                _selected = null;
-                                self.m_nextGo.SetActive(value: false);
-                            }
-
-                            self.m_scrollView.UpdateData();
-                        }
-                    );
-                });
-                deleteSaveButton.gameObject.SetActive(self.m_saveEnum != SaveEnum.自动);
-
-                slotToggle.isOn = info == _selected;
+                slotToggle.isOn = meta == _scrollViewState.SelectedSlot;
             }
         );
-        scrollView.SetItemCountFunc(() => _saveInfos[self.m_saveEnum].Count);
+        scrollView.SetItemCountFunc(() => _saveMetasByKind[_scrollViewState.SelectedTab].Count);
 
         var menuRect = goTable.GetNode<RectTransform>("Menus_RectTransform");
         var menuChildGo = menuRect.GetChild(0).gameObject;
@@ -261,12 +178,12 @@ internal static class FileWindow_Patch
                     {
                         if (isOn)
                         {
-                            self.m_saveEnum = (SaveEnum)i;
+                            _scrollViewState.SelectedTab = (SaveEnum)i;
                             _refreshScrollMethod.Invoke(self, []);
                         }
                     }
                 );
-                toggle.isOn = self.m_saveEnum == (SaveEnum)i;
+                toggle.isOn = _scrollViewState.SelectedTab == (SaveEnum)i;
             }
         );
 
@@ -279,11 +196,11 @@ internal static class FileWindow_Patch
     {
         var self = __instance;
 
-        if (_saveInfos.Count == 0)
+        if (_saveMetasByKind.Count == 0)
         {
             foreach (var kind in (SaveEnum[])Enum.GetValues(typeof(SaveEnum)))
             {
-                _saveInfos[kind] =
+                _saveMetasByKind[kind] =
                     kind == SaveEnum.手动
                         ? [.. SaveMetadata.ReadAllFixedSlots()]
                         : [.. SaveMetadata.ReadAll(kind)];
@@ -291,7 +208,7 @@ internal static class FileWindow_Patch
         }
 
         int index = 0;
-        var saveMetas = _saveInfos[self.m_saveEnum];
+        var saveMetas = _saveMetasByKind[_scrollViewState.SelectedTab];
         if (saveMetas.Count > 0)
         {
             var (meta, i) = saveMetas
@@ -300,12 +217,13 @@ internal static class FileWindow_Patch
 
             if (meta != null)
                 index = i;
-            _selected = meta;
-            self.m_nextGo.SetActive(_selected != null);
+            _scrollViewState.SelectedSlot = meta;
+            self.m_nextGo.SetActive(_scrollViewState.SelectedSlot != null);
         }
         else
         {
-            self.m_nextGo.SetActive(value: false);
+            _scrollViewState.SelectedSlot = null;
+            self.m_nextGo.SetActive(false);
         }
 
         self.m_scrollView.UpdateData();
@@ -321,8 +239,135 @@ internal static class FileWindow_Patch
     [HarmonyPatch(typeof(FileWindow), nameof(FileWindow.OnClose))]
     private static void FileWindow_OnClose_Postfix()
     {
-        _selected = null;
-        _saveInfos.Clear();
+        _scrollViewState.SelectedTab = default;
+        _scrollViewState.SelectedSlot = default;
+        _saveMetasByKind.Clear();
+    }
+
+    internal static void SetSaveSlotContent(
+        int index,
+        RectTransform slotRect,
+        AillieoUtils.ScrollView scrollView,
+        GameObject? loadButtonGo,
+        List<SaveMetadata?> saveMetas,
+        ScrollViewState state,
+        Action refreshScroll
+    )
+    {
+        var goTable = slotRect.GetComponent<GoTable>();
+        var meta = saveMetas[index];
+
+        var slotNumberLabel = goTable.GetNode<Text>("Num_Text");
+        if (state.SelectedTab == SaveEnum.手动)
+        {
+            slotNumberLabel.transform.parent.gameObject.SetActive(true);
+            slotNumberLabel.text = (index + 1).ToString();
+        }
+        else
+        {
+            slotNumberLabel.transform.parent.gameObject.SetActive(false);
+        }
+
+        if (meta == null)
+            return;
+
+        var renameButton = goTable.GetNode<UIButton>("Rename_UIButton");
+        renameButton.SetLeftClickEvent(() =>
+        {
+            UIUtlils.OpenRenameWindow(
+                LanguageUtils.GetTextDef(23),
+                meta.Name,
+                (name) =>
+                {
+                    var save = meta.ReadSaveData();
+                    if (save == null)
+                        return false;
+
+                    if (SaveManager.Instance.ChangeName(save, name))
+                    {
+                        saveMetas[index] = save.ToMetadata();
+                        refreshScroll();
+                        return true;
+                    }
+
+                    return false;
+                }
+            );
+        });
+        renameButton.gameObject.SetActive(state.SelectedTab != SaveEnum.自动);
+
+        var gameTimeLabel = goTable.GetNode<Text>("GameTime_Text");
+        gameTimeLabel.text = $"{meta.GameTime / 3600f:F1}h";
+
+        var difficultyLabel = goTable.GetNode<Text>("Dif_Text");
+        difficultyLabel.text = LanguageUtils.GetDifficultName(meta.Difficulty);
+
+        var taskLabel = goTable.GetNode<Text>("Task_Text");
+        if (meta.ShowMainId > 0)
+        {
+            var taskData = DBLoad.Task.Get(meta.ShowMainId);
+            taskLabel.text = LanguageUtils.GetStr(taskData.m_name);
+        }
+        else
+        {
+            taskLabel.text = string.Empty;
+        }
+
+        var saveNameLabel = goTable.GetNode<Text>("Name_Text");
+        saveNameLabel.text = meta.Name;
+
+        var saveTimeLabel = goTable.GetNode<Text>("SaveTime_Text");
+        saveTimeLabel.text = new DateTime(meta.SaveTime, DateTimeKind.Local).ToString();
+
+        var sceneLabel = goTable.GetNode<Text>("Scene_Text");
+        sceneLabel.text = LanguageUtils.GetStr(DBLoad.Scene.Get((int)meta.Scene).m_name);
+
+        var deleteSaveButton = goTable.GetNode<UIButton>("Del_UIButton");
+        deleteSaveButton.SetLeftClickEvent(() =>
+        {
+            UIUtlils.OpenTipsBox(
+                LanguageUtils.GetTextDef(24),
+                () =>
+                {
+                    SaveManager.Instance.Del(meta.ReadSaveData());
+
+                    if (state.SelectedTab == SaveEnum.手动)
+                    {
+                        saveMetas[saveMetas.IndexOf(meta)] = null;
+                    }
+                    else
+                    {
+                        saveMetas.Remove(meta);
+                    }
+
+                    if (saveMetas.Count > 0)
+                    {
+                        if (state.SelectedTab != SaveEnum.手动)
+                        {
+                            if (state.SelectedSlot == meta)
+                                state.SelectedSlot = saveMetas[0];
+                            loadButtonGo?.SetActive(true);
+                        }
+                        else
+                        {
+                            if (state.SelectedSlot == meta)
+                            {
+                                state.SelectedSlot = null;
+                                loadButtonGo?.SetActive(false);
+                            }
+                        }
+                    }
+                    else
+                    {
+                        state.SelectedSlot = null;
+                        loadButtonGo?.SetActive(false);
+                    }
+
+                    scrollView.UpdateData();
+                }
+            );
+        });
+        deleteSaveButton.gameObject.SetActive(state.SelectedTab != SaveEnum.自动);
     }
 }
 
