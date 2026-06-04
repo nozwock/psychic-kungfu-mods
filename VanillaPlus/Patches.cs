@@ -51,6 +51,17 @@ internal static class SaveMetadata_Patches
     }
 }
 
+[HarmonyPatch(typeof(SaveManager), nameof(SaveManager.Recent), MethodType.Getter)]
+internal static class SaveManager_Recent_Patch
+{
+    private static bool Prefix(SaveManager __instance, ref SaveData __result)
+    {
+        // null-forgiving because .Recent already returns null with the non-nullable type
+        __result = __instance.ReadRecentSaveData()!;
+        return false;
+    }
+}
+
 [HarmonyPatch(typeof(SaveData), nameof(SaveData.FullName), MethodType.Getter)]
 internal class SaveData_get_FileName_FixPlayerName_Patch
 {
