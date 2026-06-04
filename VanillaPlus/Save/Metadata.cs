@@ -17,6 +17,9 @@ public record class SaveMetadata(
     int ShowMainId
 )
 {
+    [JsonIgnore]
+    public string? Filepath { get; set; }
+
     public static implicit operator SaveMetadata(SaveData save) =>
         new(
             Name: save.m_name,
@@ -27,14 +30,22 @@ public record class SaveMetadata(
             Difficulty: save.m_diffucultEnum,
             Scene: save.m_scene,
             ShowMainId: save.m_showMainId
-        );
+        )
+        {
+            Filepath = save.m_path.RemoveSuffix(".bytes") + ".meta.json",
+        };
 
-    public static SaveMetadata Read(string filepath) =>
-        (SaveMetadata?)
-            JsonConvert.DeserializeObject(File.ReadAllText(filepath), typeof(SaveMetadata))
-        ?? throw new InvalidDataException(
-            $"{nameof(SaveMetadata)} file '{filepath}' contained null json"
-        );
+    public static SaveMetadata Read(string filepath)
+    {
+        var metadata =
+            (SaveMetadata?)
+                JsonConvert.DeserializeObject(File.ReadAllText(filepath), typeof(SaveMetadata))
+            ?? throw new InvalidDataException(
+                $"{nameof(SaveMetadata)} file '{filepath}' contained null json"
+            );
+        metadata.Filepath = filepath;
+        return metadata;
+    }
 
     public void Write(string filepath) =>
         File.WriteAllText(filepath, JsonConvert.SerializeObject(this));
