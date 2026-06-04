@@ -12,29 +12,11 @@ internal static class SaveManagerExtensions
         var mostRecent = (searchPaths ?? [self.SavePath, self.FixedPath, self.AutoPath])
             .SelectMany(path => Directory.EnumerateFiles(path, "*.meta.json"))
             .AsParallel()
-            .Select(path => (Meta: (SaveMetadata?)SaveMetadata.Read(path), Path: path))
-            .DefaultIfEmpty((null, ""))
-            .Aggregate(
-                (a, b) =>
-                {
-                    if (a.Meta == null)
-                        return b;
-                    if (b.Meta == null)
-                        return a;
-                    return a.Meta.SaveTime > b.Meta.SaveTime ? a : b;
-                }
-            );
+            .Select(path => SaveMetadata.Read(path))
+            .OrderByDescending(meta => meta.SaveTime)
+            .FirstOrDefault();
 
-        if (mostRecent.Meta != null)
-        {
-            var savefile = Path.Combine(mostRecent.Path.RemoveSuffix(".meta.json") + ".bytes");
-            return SaveManager.Instance.Load(
-                Path.GetDirectoryName(savefile),
-                Path.GetFileName(savefile)
-            );
-        }
-
-        return null;
+        return mostRecent?.ReadSaveData();
     }
 }
 
