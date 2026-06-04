@@ -52,6 +52,15 @@ public record class SaveMetadata(
     public void Write(string filepath) =>
         File.WriteAllText(filepath, JsonConvert.SerializeObject(this));
 
+    public void Write() =>
+        File.WriteAllText(
+            Filepath
+                ?? throw new InvalidDataException(
+                    $"Can't write metadata without explicit path since {nameof(Filepath)} is null"
+                ),
+            JsonConvert.SerializeObject(this)
+        );
+
     public static IEnumerable<SaveMetadata?> ReadAllFixedSlots()
     {
         var parent = SaveManager.Instance.FixedPath;
