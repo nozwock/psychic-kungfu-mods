@@ -72,23 +72,7 @@ public partial class Plugin : BaseUnityPlugin
         );
         quickload.performed += ctx =>
         {
-            var manager = SaveManager.Instance;
-            var save = Directory
-                .EnumerateFiles(SaveManager.Instance.SavePath, "*.bytes")
-                .AsParallel()
-                .Select(path => (SaveData?)manager.Load(Path.GetDirectoryName(path), path))
-                .DefaultIfEmpty(null)
-                .Aggregate(
-                    (a, b) =>
-                    {
-                        if (a == null)
-                            return b;
-                        if (b == null)
-                            return a;
-                        return a.m_saveTime > b.m_saveTime ? a : b;
-                    }
-                );
-
+            var save = SaveManager.Instance.ReadRecentSaveData([SaveManager.Instance.SavePath]);
             if (save != null)
             {
                 SaveManager.Instance.Load(save);
