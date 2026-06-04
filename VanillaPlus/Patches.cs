@@ -280,7 +280,6 @@ internal static class FileWindow_Patch
 
         if (_saveInfos.Count == 0)
         {
-            Debug.Log("READ METADATA FROM DISK");
             foreach (var kind in (SaveEnum[])Enum.GetValues(typeof(SaveEnum)))
             {
                 _saveInfos[kind] =
