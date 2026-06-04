@@ -28,6 +28,6 @@ internal static class SaveDataExtensions
     {
         save.m_path = filepath;
         File.WriteAllBytes(filepath, SaveManager.Instance.Encrypt(JsonUtility.ToJson(save)));
-        save.ToMetadata().Write(filepath.RemoveSuffix(".bytes") + ".meta.json");
+        save.ToMetadata().Write();
     }
 }

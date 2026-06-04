@@ -5,7 +5,6 @@ using System.Reflection;
 using System.Reflection.Emit;
 using System.Text.RegularExpressions;
 using Common;
-using Common.Extensions;
 using HarmonyLib;
 using UnityEngine;
 using UnityEngine.UI;
@@ -40,17 +39,14 @@ internal static class SaveMetadata_Patches
     {
         if (!__result)
             return;
-
-        var metafile = data.m_path.RemoveSuffix(".bytes") + ".meta.json";
-        data.ToMetadata().Write(metafile);
+        data.ToMetadata().Write();
     }
 
     [HarmonyPostfix]
     [HarmonyPatch(typeof(SaveManager), nameof(SaveManager.Del))]
     private static void SaveManager_Del_Postfix(SaveData data)
     {
-        var metafile = data.m_path.RemoveSuffix(".bytes") + ".meta.json";
-        File.Delete(metafile);
+        File.Delete(data.ToMetadata().Filepath);
     }
 }
 
