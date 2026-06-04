@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
 using System.Text.RegularExpressions;
@@ -289,10 +290,18 @@ internal static class FileWindow_Patch
             }
         }
 
-        if (_saveInfos[self.m_saveEnum].Count > 0)
+        int index = 0;
+        var saveMetas = _saveInfos[self.m_saveEnum];
+        if (saveMetas.Count > 0)
         {
-            _selected = _saveInfos[self.m_saveEnum][0];
-            self.m_nextGo.SetActive(value: true);
+            var (meta, i) = saveMetas
+                .Select((meta, i) => (meta, i))
+                .FirstOrDefault(pair => pair.meta != null);
+
+            if (meta != null)
+                index = i;
+            _selected = meta;
+            self.m_nextGo.SetActive(_selected != null);
         }
         else
         {
@@ -300,9 +309,9 @@ internal static class FileWindow_Patch
         }
 
         self.m_scrollView.UpdateData();
-        if (_saveInfos[self.m_saveEnum].Count > 0)
+        if (saveMetas.Count > 0)
         {
-            self.m_scrollView.ScrollTo(0);
+            self.m_scrollView.ScrollTo(index);
         }
 
         return false;
