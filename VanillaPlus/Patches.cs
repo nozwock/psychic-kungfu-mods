@@ -2,10 +2,54 @@ using System.Collections.Generic;
 using System.IO;
 using System.Reflection.Emit;
 using System.Text.RegularExpressions;
+using Common;
+using Common.Extensions;
 using HarmonyLib;
 using UnityEngine;
+using VanillaPlus.Save;
 
 namespace VanillaPlus.Patches;
+
+[HarmonyPatch]
+internal static class SaveMetadata_Patches
+{
+    [HarmonyPostfix]
+    [HarmonyPatch(typeof(SaveManager), nameof(SaveManager.Save))]
+    private static void SaveManager_Save_Postfix(
+        SaveManager __instance,
+        string parent,
+        string path,
+        ref bool __result
+    )
+    {
+        if (!__result)
+            return;
+
+        // path param doesn't contain .bytes suffix
+        var self = __instance;
+        var metafile = Path.Combine(parent, path) + ".meta.json";
+        self.SaveData.ToMetadata().Write(metafile);
+    }
+
+    [HarmonyPostfix]
+    [HarmonyPatch(typeof(SaveManager), nameof(SaveManager.ChangeName))]
+    private static void SaveManager_ChangeName_Postfix(SaveData data, ref bool __result)
+    {
+        if (!__result)
+            return;
+
+        var metafile = data.m_path.RemoveSuffix(".bytes") + ".meta.json";
+        data.ToMetadata().Write(metafile);
+    }
+
+    [HarmonyPostfix]
+    [HarmonyPatch(typeof(SaveManager), nameof(SaveManager.Del))]
+    private static void SaveManager_Del_Postfix(SaveData data)
+    {
+        var metafile = data.m_path.RemoveSuffix(".bytes") + ".meta.json";
+        File.Delete(metafile);
+    }
+}
 
 [HarmonyPatch(typeof(SaveData), nameof(SaveData.FullName), MethodType.Getter)]
 internal class SaveData_get_FileName_FixPlayerName_Patch
@@ -36,14 +80,8 @@ internal class SaveManager_Load_PrioritizeQuicksaveFilename_Patch
             )
         )
         {
-            var filepath = Path.Combine(parent, path);
-            saveData.m_path = filepath;
             saveData.m_name = filename;
-
-            File.WriteAllBytes(
-                saveData.m_path,
-                SaveManager.Instance.Encrypt(JsonUtility.ToJson(saveData))
-            );
+            saveData.Write(Path.Combine(parent, path));
         }
 
         return saveData;

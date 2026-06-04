@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using System.Reflection;
 using BepInEx;
@@ -8,6 +7,7 @@ using DBLoad;
 using HarmonyLib;
 using JinGuLib.UI;
 using UnityEngine.InputSystem;
+using VanillaPlus.Save;
 
 namespace VanillaPlus;
 
@@ -51,6 +51,7 @@ public partial class Plugin : BaseUnityPlugin
 
     private void Start()
     {
+        SaveMetadata.WriteMissingMetadataFilesAsync();
         InitActions();
     }
 

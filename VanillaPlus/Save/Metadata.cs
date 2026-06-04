@@ -1,0 +1,70 @@
+using System.IO;
+using System.Linq;
+using System.Threading.Tasks;
+using Common.Extensions;
+using Newtonsoft.Json;
+using Sirenix.Utilities;
+
+namespace VanillaPlus.Save;
+
+public record class SaveMetadata(
+    string Name,
+    string Surname,
+    string Forename,
+    int GameTime,
+    long SaveTime,
+    DiffucultEnum Difficulty,
+    SceneEnum Scene,
+    int ShowMainId
+)
+{
+    public static implicit operator SaveMetadata(SaveData save) =>
+        new(
+            Name: save.m_name,
+            Surname: save.m_leaderFamily,
+            Forename: save.m_leaderName,
+            GameTime: save.m_gameTime,
+            SaveTime: save.m_saveTime,
+            Difficulty: save.m_diffucultEnum,
+            Scene: save.m_scene,
+            ShowMainId: save.m_showMainId
+        );
+
+    public static SaveMetadata Read(string filepath) =>
+        (SaveMetadata?)
+            JsonConvert.DeserializeObject(File.ReadAllText(filepath), typeof(SaveMetadata))
+        ?? throw new InvalidDataException(
+            $"{nameof(SaveMetadata)} file '{filepath}' contained null json"
+        );
+
+    public void Write(string filepath) =>
+        File.WriteAllText(filepath, JsonConvert.SerializeObject(this));
+
+    public static Task WriteMissingMetadataFilesAsync()
+    {
+        var saveManager = SaveManager.Instance;
+        string[] searchPaths = [saveManager.SavePath, saveManager.FixedPath, saveManager.AutoPath];
+        return Task.Run(
+            delegate
+            {
+                searchPaths
+                    .SelectMany(path => Directory.EnumerateFiles(path, "*.bytes"))
+                    .AsParallel()
+                    .ForEach(savefile =>
+                    {
+                        var metafile = savefile.RemoveSuffix(".bytes") + ".meta.json";
+                        if (!File.Exists(metafile))
+                        {
+                            saveManager
+                                .Load(
+                                    Path.GetDirectoryName(savefile),
+                                    Path.GetFileNameWithoutExtension(savefile) + ".meta.json"
+                                )
+                                ?.ToMetadata()
+                                .Write(metafile);
+                        }
+                    });
+            }
+        );
+    }
+}
