@@ -20,18 +20,20 @@ internal class SaveData_get_FileName_FixPlayerName_Patch
 }
 
 [HarmonyPatch(typeof(SaveManager), nameof(SaveManager.Load), [typeof(string), typeof(string)])]
-internal class SaveManager_Load_PrioritizeSaveFilename_Patch
+internal class SaveManager_Load_PrioritizeQuicksaveFilename_Patch
 {
-    private static readonly Regex managedSaveRegex = new(
-        "^(?:Fixed(\\d+)|Quick(\\d+)|AutoSave\\d+)$"
-    );
+    private static readonly Regex managedQuicksaveRegex = new("^(?:Quick\\(\\d+\\))$");
 
-    private static SaveData UpdateSaveName(SaveData saveData, string parent, string path)
+    private static SaveData UpdateQuickaveName(SaveData saveData, string parent, string path)
     {
         var filename = Path.GetFileNameWithoutExtension(path);
         if (
             saveData.m_name == null
-            || (saveData.m_name != filename && !managedSaveRegex.IsMatch(saveData.m_name))
+            || (
+                saveData.m_name != filename
+                && PathUtils.Equals(parent, SaveManager.Instance.SavePath)
+                && !managedQuicksaveRegex.IsMatch(filename)
+            )
         )
         {
             var filepath = Path.Combine(parent, path);
@@ -56,8 +58,8 @@ internal class SaveManager_Load_PrioritizeSaveFilename_Patch
             .MakeGenericMethod(typeof(SaveData));
 
         var updateSaveNameMethod = AccessTools.Method(
-            typeof(SaveManager_Load_PrioritizeSaveFilename_Patch),
-            nameof(UpdateSaveName)
+            typeof(SaveManager_Load_PrioritizeQuicksaveFilename_Patch),
+            nameof(UpdateQuickaveName)
         );
 
         foreach (var code in instructions)
