@@ -74,10 +74,7 @@ public record class SaveMetadata(
                         if (!File.Exists(metafile))
                         {
                             saveManager
-                                .Load(
-                                    Path.GetDirectoryName(savefile),
-                                    Path.GetFileNameWithoutExtension(savefile) + ".meta.json"
-                                )
+                                .Load(Path.GetDirectoryName(savefile), Path.GetFileName(savefile))
                                 ?.ToMetadata()
                                 .Write(metafile);
                         }
