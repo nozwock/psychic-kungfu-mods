@@ -71,8 +71,8 @@ internal static class FileWindow_Patch
         public SaveMetadata? SelectedSlot { get; set; }
     };
 
-    private static Dictionary<SaveEnum, List<SaveMetadata?>> _saveMetasByKind = [];
-    private static ScrollViewState _scrollViewState = new();
+    private static readonly Dictionary<SaveEnum, List<SaveMetadata?>> _saveMetasByKind = [];
+    private static readonly ScrollViewState _scrollViewState = new();
     private static MethodInfo? _refreshScrollMethod;
     private static MethodInfo? _onCloseMethod;
 
