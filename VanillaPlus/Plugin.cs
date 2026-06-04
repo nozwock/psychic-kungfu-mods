@@ -47,11 +47,13 @@ public partial class Plugin : BaseUnityPlugin
         {
             Logger.LogInfo($"{m.DeclaringType.FullName}.{m.Name}");
         }
+
+        // Doesn't cause stutter if called here in Awake when the intro movie is playing unlike in Start
+        SaveMetadata.WriteMissingMetadataFilesAsync();
     }
 
     private void Start()
     {
-        SaveMetadata.WriteMissingMetadataFilesAsync();
         InitActions();
     }
 
