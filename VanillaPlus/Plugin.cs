@@ -15,6 +15,8 @@ namespace VanillaPlus;
 [BepInDependency(JinGuLib.Plugin.Id)]
 public partial class Plugin : BaseUnityPlugin
 {
+    public static int FixedSaveSlots { get; set; } = 30;
+
     internal static Plugin Instance { get; private set; } = null!;
 
     private Harmony? harmony;

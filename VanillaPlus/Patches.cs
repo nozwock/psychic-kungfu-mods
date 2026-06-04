@@ -250,7 +250,7 @@ internal static class FileWindow_Patch
             {
                 _saveMetasByKind[kind] =
                     kind == SaveEnum.手动
-                        ? [.. SaveMetadata.ReadAllFixedSlots()]
+                        ? [.. SaveMetadata.ReadAllFixedSlots(Plugin.FixedSaveSlots)]
                         : [.. SaveMetadata.ReadAll(kind)];
             }
         }
@@ -405,7 +405,7 @@ internal static class SaveWindow_Patch
 
         var scrollView = goTable.GetNode<AillieoUtils.ScrollView>("ScrollView_ScrollView");
         self.m_scrollView = scrollView;
-        scrollView.SetItemCountFunc(() => 30);
+        scrollView.SetItemCountFunc(() => Plugin.FixedSaveSlots);
         scrollView.SetUpdateFunc(
             (index, rect) =>
             {
@@ -493,7 +493,7 @@ internal static class SaveWindow_Patch
 
         if (_saveMetas.Count == 0)
         {
-            _saveMetas.AddRange(SaveMetadata.ReadAllFixedSlots());
+            _saveMetas.AddRange(SaveMetadata.ReadAllFixedSlots(Plugin.FixedSaveSlots));
         }
 
         self.m_scrollView.UpdateData();

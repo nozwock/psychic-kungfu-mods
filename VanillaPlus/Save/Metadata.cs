@@ -61,11 +61,11 @@ public record class SaveMetadata(
             JsonConvert.SerializeObject(this)
         );
 
-    public static IEnumerable<SaveMetadata?> ReadAllFixedSlots()
+    public static IEnumerable<SaveMetadata?> ReadAllFixedSlots(int maxSlots = 30)
     {
         var parent = SaveManager.Instance.FixedPath;
         return Enumerable
-            .Range(0, 30)
+            .Range(0, maxSlots)
             .AsParallel()
             .Select(i =>
             {
