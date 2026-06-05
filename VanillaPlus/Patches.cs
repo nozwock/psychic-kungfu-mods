@@ -3,9 +3,6 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
-using System.Reflection.Emit;
-using System.Text.RegularExpressions;
-using Common;
 using HarmonyLib;
 using UnityEngine;
 using UnityEngine.UI;
@@ -558,56 +555,5 @@ internal class SaveData_get_FileName_FixPlayerName_Patch
         var separator = GameSetting.GetValue(SettingEnum.Language) == 2 ? " " : "";
         __result = self.m_leaderFamily + separator + self.m_leaderName;
         return false;
-    }
-}
-
-[HarmonyPatch(typeof(SaveManager), nameof(SaveManager.Load), [typeof(string), typeof(string)])]
-internal class SaveManager_Load_PrioritizeQuicksaveFilename_Patch
-{
-    private static readonly Regex managedQuicksaveRegex = new("^(?:Quick\\(\\d+\\))$");
-
-    private static SaveData UpdateQuickaveName(SaveData saveData, string parent, string path)
-    {
-        var filename = Path.GetFileNameWithoutExtension(path);
-        if (
-            saveData.m_name == null
-            || (
-                saveData.m_name != filename
-                && PathUtils.Equals(parent, SaveManager.Instance.SavePath)
-                && !managedQuicksaveRegex.IsMatch(filename)
-            )
-        )
-        {
-            saveData.m_name = filename;
-            saveData.Write(Path.Combine(parent, path));
-        }
-
-        return saveData;
-    }
-
-    private static IEnumerable<CodeInstruction> Transpiler(
-        IEnumerable<CodeInstruction> instructions
-    )
-    {
-        var saveDataFromJsonMethod = AccessTools
-            .Method(typeof(JsonUtility), nameof(JsonUtility.FromJson), [typeof(string)])
-            .MakeGenericMethod(typeof(SaveData));
-
-        var updateSaveNameMethod = AccessTools.Method(
-            typeof(SaveManager_Load_PrioritizeQuicksaveFilename_Patch),
-            nameof(UpdateQuickaveName)
-        );
-
-        foreach (var code in instructions)
-        {
-            yield return code;
-
-            if (code.Calls(saveDataFromJsonMethod))
-            {
-                yield return new CodeInstruction(OpCodes.Ldarg_1);
-                yield return new CodeInstruction(OpCodes.Ldarg_2);
-                yield return new CodeInstruction(OpCodes.Call, updateSaveNameMethod);
-            }
-        }
     }
 }
