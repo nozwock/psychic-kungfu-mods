@@ -255,6 +255,15 @@ internal static class FileWindow_Patch
             }
         }
 
+        // Keep ToggleGroup in sync with what's in ScrollView
+        var goTable = self.transform.GetComponent<GoTable>();
+        var menuRect = goTable.GetNode<RectTransform>("Menus_RectTransform");
+        for (var i = menuRect.childCount - 1; i >= 0; i--)
+        {
+            var toggle = menuRect.GetChild(i).GetComponent<UIToggle>();
+            toggle.isOn = _scrollViewState.SelectedTab == (SaveEnum)i;
+        }
+
         int index = 0;
         var saveMetas = _saveMetasByKind[_scrollViewState.SelectedTab];
         if (saveMetas.Count > 0)
