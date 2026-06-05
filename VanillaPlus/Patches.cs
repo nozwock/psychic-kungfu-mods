@@ -64,6 +64,37 @@ internal static class SaveManager_Recent_Patch
 }
 
 [HarmonyPatch]
+internal static class RenameWindow_Patch
+{
+    [HarmonyPostfix]
+    [HarmonyPatch(typeof(RenameWindow), nameof(RenameWindow.OnAwake))]
+    private static void RenameWindow_OnAwake_Postfix(RenameWindow __instance)
+    {
+        var self = __instance;
+
+        var goTable = self.GetComponent<GoTable>();
+        var inputField = goTable.GetNode<InputField>("Input_InputField");
+        // Remove whitespace and other restriction
+        inputField.onValidateInput = null;
+        // Remove character limit
+        inputField.characterLimit = 0;
+        // TODO: Extend InputField's width
+    }
+
+    [HarmonyPostfix]
+    [HarmonyPatch(typeof(RenameWindow), nameof(RenameWindow.OnOpen))]
+    private static void RenameWindow_OnOpen_Postfix(RenameWindow __instance)
+    {
+        var self = __instance;
+
+        var goTable = self.GetComponent<GoTable>();
+        var inputField = goTable.GetNode<InputField>("Input_InputField");
+        // At least on 1.11, game's repeatedly adding new delegate to onValidateInput in OnOpen, so yeah...
+        inputField.onValidateInput = null;
+    }
+}
+
+[HarmonyPatch]
 internal static class FileWindow_Patch
 {
     internal sealed class ScrollViewState
