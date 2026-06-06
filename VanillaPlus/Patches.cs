@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using Common;
 using HarmonyLib;
 using UnityEngine;
 using UnityEngine.UI;
@@ -30,15 +31,6 @@ internal static class SaveMetadata_Patches
         var pathWithoutExt = Path.Combine(parent, path);
         self.SaveData.m_path = pathWithoutExt + ".bytes"; // Game doesn't update it, so we will
         self.SaveData.ToMetadata().Write(pathWithoutExt + ".meta.json");
-    }
-
-    [HarmonyPostfix]
-    [HarmonyPatch(typeof(SaveManager), nameof(SaveManager.ChangeName))]
-    private static void SaveManager_ChangeName_Postfix(SaveData data, ref bool __result)
-    {
-        if (!__result)
-            return;
-        data.ToMetadata().Write();
     }
 
     [HarmonyPostfix]
@@ -555,5 +547,40 @@ internal class SaveData_get_FileName_FixPlayerName_Patch
         var separator = GameSetting.GetValue(SettingEnum.Language) == 2 ? " " : "";
         __result = self.m_leaderFamily + separator + self.m_leaderName;
         return false;
+    }
+}
+
+[HarmonyPatch(typeof(SaveManager), nameof(SaveManager.ChangeName))]
+internal class SaveManager_ChangeName_Patch
+{
+    private static void Postfix(SaveData data, string name, bool __result)
+    {
+        // TODO: ChangeName updates m_saveTime... it shouldn't.
+        if (!__result)
+            return;
+        // Part of SaveMetadata_Patches. It's here because we want to ensure it runs before our next stuff.
+        var meta = data.ToMetadata();
+        meta.Write();
+
+        // Only rename for old-style named infinite quicksaves.
+        var isQuicksavesDir = PathUtils.Equals(
+            Path.GetDirectoryName(data.m_path),
+            SaveManager.Instance.SavePath
+        );
+        if (!isQuicksavesDir)
+            return;
+
+        // TODO: The filename for save (*.bytes) should also be getting rid of invalid chars in original function
+        var newFilename = string.Join("_", name.Split(Path.GetInvalidFileNameChars())) + ".bytes";
+        var newPath = PathUtils.WithBaseName(data.m_path, newFilename);
+
+        var metaPath = meta.Filepath;
+        Debug.Log($"Rename '{data.m_path}' -> '{newPath}'");
+        File.Move(data.m_path, newPath);
+        data.m_path = newPath;
+
+        var newMetaPath = data.ToMetadata().Filepath;
+        Debug.Log($"Rename '{metaPath}' -> '{newMetaPath}'");
+        File.Move(metaPath, newMetaPath);
     }
 }
