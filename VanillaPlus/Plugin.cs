@@ -37,6 +37,7 @@ public partial class Plugin : BaseUnityPlugin
             Logger.LogError(ex);
         }
 
+        // TODO: keybind for battle auto-mode
         // TODO: Main Menu Continue seems to not be using m_saveTime for getting the recent save file
         // TODO: Persist Load UI's last tab page opened (FileWindow)
         // TODO: Limit number of max Quicksaves from 60 to something else

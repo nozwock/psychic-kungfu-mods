@@ -358,11 +358,29 @@ internal static class FileWindow_Patch
                     if (save == null)
                         return false;
 
-                    if (SaveManager.Instance.ChangeName(save, name))
+                    if (state.SelectedTab == SaveEnum.快速)
                     {
-                        saveMetas[index] = save.ToMetadata();
-                        refreshScroll();
+                        UIUtlils.OpenTipsBox(
+                            "Rename filename as well? The save is permanent if the filename is not 'Quick(1...).bytes'.",
+                            () =>
+                            {
+                                if (SaveManager.Instance.ChangeName(save, name))
+                                {
+                                    saveMetas[index] = save.ToMetadata();
+                                    refreshScroll();
+                                }
+                            }
+                        );
                         return true;
+                    }
+                    else
+                    {
+                        if (SaveManager.Instance.ChangeName(save, name))
+                        {
+                            saveMetas[index] = save.ToMetadata();
+                            refreshScroll();
+                            return true;
+                        }
                     }
 
                     return false;
